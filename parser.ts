@@ -105,7 +105,7 @@ export class Parser {
 
     while (this.curToken != undefined) {
       statements.push(this.parseStatement());
-      this.advanceToken();
+      this.skipSemicolon();
     }
 
     return { statements };
@@ -122,21 +122,16 @@ export class Parser {
     }
 
     if (this.nextToken?.type === "OP" && this.nextToken?.value === "=") {
-      return this.parseAssignment();
+      const assignment = this.parseAssignment();
+      return assignment;
     }
 
     if (this.curToken?.type === "IDENTIFIER") {
-      if (
-        this.nextToken?.type === "IDENTIFIER" ||
-        this.nextToken?.type === "STRING" ||
-        this.nextToken?.type === "NUMBER" ||
-        this.nextToken?.type === "OP"
-      ) {
+      if (this.isFunctionApplication()) {
         return this.parseFunctionApplication();
       }
 
-      this.advanceToken();
-      return new ExpressionStatement(new Identifier(this.curToken));
+      return new ExpressionStatement(this.parseIdentifier());
     }
 
     if (this.isOperator("$((")) {
@@ -147,14 +142,14 @@ export class Parser {
   }
 
   private parseConditionStatement(): Condition {
-    this.advanceToken();
+    this.consumeToken({ type: "KEYWORD", value: "if" });
     this.consumeToken({ type: "OP", value: "[" });
     const expression = this.parseExpression(true);
-    this.advanceToken();
     this.consumeToken({ type: "OP", value: "]" });
-    this.consumeToken({ type: "OP", value: ";" });
+    this.consumeToken({ type: "KEYWORD", value: ";" });
     this.consumeToken({ type: "KEYWORD", value: "then" });
     const consequence = this.parseStatement();
+    this.skipSemicolon();
 
     if (this.isKeyword("fi")) {
       this.consumeToken({ type: "KEYWORD", value: "fi" });
@@ -164,6 +159,7 @@ export class Parser {
     if (this.isKeyword("else")) {
       this.consumeToken({ type: "KEYWORD", value: "else" });
       const other = this.parseStatement();
+      this.skipSemicolon();
       this.consumeToken({ type: "KEYWORD", value: "fi" });
       return new Condition(expression, consequence, other);
     }
@@ -175,8 +171,7 @@ export class Parser {
 
   private parseAssignment() {
     const lhs = this.parseIdentifier();
-    this.advanceToken();
-    this.advanceToken(); // skip equal sign
+    this.consumeToken({ type: "OP", value: "=" });
     const rhs = this.parseExpression(true);
 
     return new Assignment(lhs, rhs);
@@ -188,18 +183,22 @@ export class Parser {
     }
 
     if (this.curToken?.type === "IDENTIFIER") {
-      return new Identifier(this.curToken);
+      return this.parseIdentifier();
     }
 
     if (this.curToken?.type === "NUMBER") {
-      return new NumberConstant(Number(this.curToken?.value));
+      const number = new NumberConstant(Number(this.curToken?.value));
+      this.advanceToken();
+      return number;
     }
 
     if (this.curToken?.type === "STRING") {
-      return new StringConstant(this.curToken.value);
+      const string = new StringConstant(this.curToken.value);
+      this.advanceToken();
+      return string;
     }
 
-    if (this.curToken?.type === "OP" && this.curToken.value === "$((") {
+    if (this.isOperator("$((")) {
       return this.parseArithmeticExpression();
     }
 
@@ -211,8 +210,10 @@ export class Parser {
   private parseOperator(): Operator {
     switch (this.curToken?.value) {
       case "=":
+        this.advanceToken();
         return Operator.Equal;
       case "+":
+        this.advanceToken();
         return Operator.Plus;
     }
 
@@ -226,7 +227,9 @@ export class Parser {
       );
     }
 
-    return new Identifier(this.curToken);
+    const identifier = new Identifier(this.curToken);
+    this.advanceToken();
+    return identifier;
   }
 
   private consumeToken(expected: Token) {
@@ -244,45 +247,45 @@ export class Parser {
 
   private parseBooleanExpression() {
     const lhs = this.parseExpression(false);
-    this.advanceToken();
     const op = this.parseOperator();
-    this.advanceToken();
     const rhs = this.parseExpression(false);
     return new BooleanExpression(lhs, rhs, op);
   }
 
   private parseArithmeticExpression() {
-    this.advanceToken();
+    this.consumeToken({ type: "OP", value: "$((" });
     const lhs = this.parseExpression(false);
-    this.advanceToken();
 
-    if (this.curToken?.type === "OP" && this.curToken.value === "))") {
+    if (this.isOperator("))")) {
       this.consumeToken({ type: "OP", value: "))" });
       return new ArithmeticExpression(lhs);
     }
 
     const op = this.parseOperator();
-    this.advanceToken();
     const rhs = this.parseExpression(false);
-    this.advanceToken();
+    this.consumeToken({ type: "OP", value: "))" });
     return new ArithmeticInfixExpression(lhs, rhs, op);
   }
 
   private parseFunctionApplication() {
     const name = this.parseIdentifier();
-    this.advanceToken();
     const parameters = [];
     while (this.curToken && !this.isSemicolon() && !this.isKeyword()) {
       const parameter = this.parseExpression(false);
       parameters.push(parameter);
-      this.advanceToken();
     }
 
     return new FunctionApplication(name, parameters);
   }
 
   private isSemicolon(): boolean {
-    return this.curToken?.type === "OP" && this.curToken.value === ";";
+    return this.curToken?.type === "KEYWORD" && this.curToken.value === ";";
+  }
+
+  private skipSemicolon() {
+    if (this.isSemicolon()) {
+      this.advanceToken();
+    }
   }
 
   private isKeyword(value?: string): boolean {
@@ -292,5 +295,12 @@ export class Parser {
 
   private isOperator(value: string): boolean {
     return this.curToken?.type === "OP" && this.curToken.value === value;
+  }
+
+  private isFunctionApplication() {
+    return this.nextToken?.type === "IDENTIFIER" ||
+      this.nextToken?.type === "STRING" ||
+      this.nextToken?.type === "NUMBER" ||
+      this.nextToken?.type === "OP";
   }
 }

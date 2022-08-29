@@ -12,8 +12,8 @@ export class Lexer {
   constructor(input: string) {
     this.l = moo.compile({
       WS: / /,
-      OP: ["[", "]", "=", ";", "$((", "))", "+"],
-      KEYWORD: ["if", "then", "else", "fi"],
+      OP: ["[", "]", "=", "$((", "))", "+"],
+      KEYWORD: [";", "if", "then", "else", "fi"],
       STRING: { match: /"(?:[^"]*)"/, value: (s) => s.slice(1, -1) },
       NUMBER: /[0-9]+/,
       IDENTIFIER: /\$?[A-Za-z0-9]+/,

@@ -107,7 +107,7 @@ Deno.test("if condition", () => {
     { type: "OP", value: "=" },
     { type: "IDENTIFIER", value: "$b" },
     { type: "OP", value: "]" },
-    { type: "OP", value: ";" },
+    { type: "KEYWORD", value: ";" },
     { type: "KEYWORD", value: "then" },
     { type: "IDENTIFIER", value: "$a" },
     { type: "KEYWORD", value: "else" },
