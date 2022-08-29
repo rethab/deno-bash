@@ -32,7 +32,7 @@ Deno.test("number assignment", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
     ],
   });
@@ -229,7 +229,7 @@ Deno.test("multiple statement on one line", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
     ],
   });
@@ -238,11 +238,11 @@ Deno.test("multiple statement on one line", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new Identifier({ type: "NUMBER", value: "6" }),
+        new NumberConstant(6),
       ),
     ],
   });
@@ -251,11 +251,11 @@ Deno.test("multiple statement on one line", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new Identifier({ type: "NUMBER", value: "6" }),
+        new NumberConstant(6),
       ),
     ],
   });
@@ -264,19 +264,19 @@ Deno.test("multiple statement on one line", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new Identifier({ type: "NUMBER", value: "6" }),
+        new NumberConstant(6),
       ),
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "c" }),
-        new Identifier({ type: "NUMBER", value: "7" }),
+        new NumberConstant(7),
       ),
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "d" }),
-        new Identifier({ type: "NUMBER", value: "8" }),
+        new NumberConstant(8),
       ),
     ],
   });
@@ -285,7 +285,7 @@ Deno.test("multiple statement on one line", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
       new FunctionApplication(
         new Identifier({ type: "IDENTIFIER", value: "echo" }),
@@ -307,7 +307,7 @@ Deno.test("multiple statement on one line", () => {
     statements: [
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "NUMBER", value: "5" }),
+        new NumberConstant(5),
       ),
       new FunctionApplication(
         new Identifier({ type: "IDENTIFIER", value: "echo" }),
@@ -315,7 +315,7 @@ Deno.test("multiple statement on one line", () => {
       ),
       new Assignment(
         new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new Identifier({ type: "NUMBER", value: "7" }),
+        new NumberConstant(7),
       ),
     ],
   });

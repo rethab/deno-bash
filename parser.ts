@@ -67,7 +67,10 @@ export enum Operator {
 export interface Statement {}
 
 export class Assignment implements Statement {
-  constructor(lhs: Identifier, rhs: Expression) {}
+  constructor(
+    public readonly lhs: Identifier,
+    public readonly rhs: Expression,
+  ) {}
 }
 
 export class Condition implements Statement {
