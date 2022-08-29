@@ -19,10 +19,7 @@ import {
 Deno.test("variable assignment", () => {
   assertProgram("a = b", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new Identifier({ type: "IDENTIFIER", value: "b" }),
-      ),
+      new Assignment(new Identifier("a"), new Identifier("b")),
     ],
   });
 });
@@ -30,10 +27,7 @@ Deno.test("variable assignment", () => {
 Deno.test("number assignment", () => {
   assertProgram("a = 5", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
     ],
   });
 });
@@ -55,8 +49,8 @@ Deno.test("arithmetic expression addition", () => {
     statements: [
       new ExpressionStatement(
         new ArithmeticInfixExpression(
-          new Identifier({ type: "NUMBER", value: "5" }),
-          new Identifier({ type: "NUMBER", value: "4" }),
+          new NumberConstant(5),
+          new NumberConstant(4),
           Operator.Plus,
         ),
       ),
@@ -69,8 +63,8 @@ Deno.test("arithmetic expression addition with variable", () => {
     statements: [
       new ExpressionStatement(
         new ArithmeticInfixExpression(
-          new Identifier({ type: "IDENTIFIER", value: "a" }),
-          new Identifier({ type: "NUMBER", value: "4" }),
+          new Identifier("a"),
+          new NumberConstant(4),
           Operator.Plus,
         ),
       ),
@@ -83,16 +77,12 @@ Deno.test("condition (if else)", () => {
     statements: [
       new Condition(
         new BooleanExpression(
-          new Identifier({ type: "IDENTIFIER", value: "a" }),
-          new Identifier({ type: "IDENTIFIER", value: "b" }),
+          new Identifier("a"),
+          new Identifier("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(
-          new Identifier({ type: "IDENTIFIER", value: "c" }),
-        ),
-        new ExpressionStatement(
-          new Identifier({ type: "IDENTIFIER", value: "d" }),
-        ),
+        new ExpressionStatement(new Identifier("c")),
+        new ExpressionStatement(new Identifier("d")),
       ),
     ],
   });
@@ -103,13 +93,11 @@ Deno.test("condition (only if)", () => {
     statements: [
       new Condition(
         new BooleanExpression(
-          new Identifier({ type: "IDENTIFIER", value: "a" }),
-          new Identifier({ type: "IDENTIFIER", value: "b" }),
+          new Identifier("a"),
+          new Identifier("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(
-          new Identifier({ type: "IDENTIFIER", value: "c" }),
-        ),
+        new ExpressionStatement(new Identifier("c")),
       ),
     ],
   });
@@ -120,16 +108,12 @@ Deno.test("condition (semicolons)", () => {
     statements: [
       new Condition(
         new BooleanExpression(
-          new Identifier({ type: "IDENTIFIER", value: "a" }),
-          new Identifier({ type: "IDENTIFIER", value: "b" }),
+          new Identifier("a"),
+          new Identifier("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(
-          new Identifier({ type: "IDENTIFIER", value: "c" }),
-        ),
-        new ExpressionStatement(
-          new Identifier({ type: "IDENTIFIER", value: "d" }),
-        ),
+        new ExpressionStatement(new Identifier("c")),
+        new ExpressionStatement(new Identifier("d")),
       ),
     ],
   });
@@ -140,14 +124,11 @@ Deno.test("condition with function application", () => {
     statements: [
       new Condition(
         new BooleanExpression(
-          new Identifier({ type: "IDENTIFIER", value: "a" }),
-          new Identifier({ type: "IDENTIFIER", value: "b" }),
+          new Identifier("a"),
+          new Identifier("b"),
           Operator.Equal,
         ),
-        new FunctionApplication(
-          new Identifier({ type: "IDENTIFIER", value: "echo" }),
-          [new Identifier({ type: "IDENTIFIER", value: "c" })],
-        ),
+        new FunctionApplication(new Identifier("echo"), [new Identifier("c")]),
       ),
     ],
   });
@@ -158,12 +139,12 @@ Deno.test("condition with arithmetic expression", () => {
     statements: [
       new Condition(
         new BooleanExpression(
-          new Identifier({ type: "IDENTIFIER", value: "a" }),
-          new Identifier({ type: "IDENTIFIER", value: "b" }),
+          new Identifier("a"),
+          new Identifier("b"),
           Operator.Equal,
         ),
         new FunctionApplication(
-          new Identifier({ type: "IDENTIFIER", value: "echo" }),
+          new Identifier("echo"),
           [
             new ArithmeticInfixExpression(
               new NumberConstant(5),
@@ -181,7 +162,7 @@ Deno.test("function application", () => {
   assertProgram("echo $((5))", {
     statements: [
       new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
+        new Identifier("echo"),
         [new ArithmeticExpression(new NumberConstant(5))],
       ),
     ],
@@ -189,26 +170,20 @@ Deno.test("function application", () => {
 
   assertProgram("echo $a", {
     statements: [
-      new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
-        [new Identifier({ type: "IDENTIFIER", value: "$a" })],
-      ),
+      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
     ],
   });
 
   assertProgram("echo 5", {
     statements: [
-      new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
-        [new NumberConstant(5)],
-      ),
+      new FunctionApplication(new Identifier("echo"), [new NumberConstant(5)]),
     ],
   });
 
   assertProgram("echo 5 6", {
     statements: [
       new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
+        new Identifier("echo"),
         [new NumberConstant(5), new NumberConstant(6)],
       ),
     ],
@@ -216,10 +191,9 @@ Deno.test("function application", () => {
 
   assertProgram('echo "hello"', {
     statements: [
-      new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
-        [new StringConstant("hello")],
-      ),
+      new FunctionApplication(new Identifier("echo"), [
+        new StringConstant("hello"),
+      ]),
     ],
   });
 });
@@ -227,96 +201,51 @@ Deno.test("function application", () => {
 Deno.test("multiple statement on one line", () => {
   assertProgram("a=5;", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
     ],
   });
 
   assertProgram("a=5;b=6", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new NumberConstant(6),
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
+      new Assignment(new Identifier("b"), new NumberConstant(6)),
     ],
   });
 
   assertProgram("a=5;b=6;", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new NumberConstant(6),
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
+      new Assignment(new Identifier("b"), new NumberConstant(6)),
     ],
   });
 
   assertProgram("a=5;b=6;c=7;d=8", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new NumberConstant(6),
-      ),
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "c" }),
-        new NumberConstant(7),
-      ),
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "d" }),
-        new NumberConstant(8),
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
+      new Assignment(new Identifier("b"), new NumberConstant(6)),
+      new Assignment(new Identifier("c"), new NumberConstant(7)),
+      new Assignment(new Identifier("d"), new NumberConstant(8)),
     ],
   });
 
   assertProgram("a = 5; echo $a", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
-      new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
-        [new Identifier({ type: "IDENTIFIER", value: "$a" })],
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
+      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
     ],
   });
 
   assertProgram("echo $a;", {
     statements: [
-      new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
-        [new Identifier({ type: "IDENTIFIER", value: "$a" })],
-      ),
+      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
     ],
   });
 
   assertProgram("a=5;echo $a ;b = 7", {
     statements: [
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "a" }),
-        new NumberConstant(5),
-      ),
-      new FunctionApplication(
-        new Identifier({ type: "IDENTIFIER", value: "echo" }),
-        [new Identifier({ type: "IDENTIFIER", value: "$a" })],
-      ),
-      new Assignment(
-        new Identifier({ type: "IDENTIFIER", value: "b" }),
-        new NumberConstant(7),
-      ),
+      new Assignment(new Identifier("a"), new NumberConstant(5)),
+      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
+      new Assignment(new Identifier("b"), new NumberConstant(7)),
     ],
   });
 });

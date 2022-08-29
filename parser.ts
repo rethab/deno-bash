@@ -37,10 +37,10 @@ export class ArithmeticExpression implements Expression {
 }
 
 export class Identifier implements Expression {
-  constructor(public readonly t: Token) {}
+  constructor(public readonly value: string) {}
 
   toString(): string {
-    return this.t.value;
+    return this.value;
   }
 }
 
@@ -82,7 +82,7 @@ export class Condition implements Statement {
 }
 
 export class ExpressionStatement implements Statement, Expression {
-  constructor(expression: Expression) {
+  constructor(public readonly expression: Expression) {
   }
 }
 
@@ -125,8 +125,7 @@ export class Parser {
     }
 
     if (this.nextToken?.type === "OP" && this.nextToken?.value === "=") {
-      const assignment = this.parseAssignment();
-      return assignment;
+      return this.parseAssignment();
     }
 
     if (this.curToken?.type === "IDENTIFIER") {
@@ -230,7 +229,7 @@ export class Parser {
       );
     }
 
-    const identifier = new Identifier(this.curToken);
+    const identifier = new Identifier(this.curToken.value);
     this.advanceToken();
     return identifier;
   }

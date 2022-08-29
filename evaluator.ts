@@ -5,6 +5,7 @@ import {
   BooleanExpression,
   Condition,
   Expression,
+  ExpressionStatement,
   FunctionApplication,
   Identifier,
   NumberConstant,
@@ -55,7 +56,7 @@ export class Evaluator {
 
   private evalStatement(statement: Statement): string[] {
     if (statement instanceof FunctionApplication) {
-      const name = statement.identifier.t.value;
+      const name = statement.identifier.value;
       const parameters = statement.parameters.map((p) =>
         this.evalExpression(p, "regular")
       );
@@ -70,6 +71,11 @@ export class Evaluator {
 
     if (statement instanceof Assignment) {
       this.evalAssignment(statement);
+      return [];
+    }
+
+    if (statement instanceof ExpressionStatement) {
+      this.evalExpression(statement.expression, "regular");
       return [];
     }
 
@@ -113,7 +119,7 @@ export class Evaluator {
     identifier: Identifier,
     mode: "regular" | "arithmetic",
   ): Value {
-    const name = identifier.t.value;
+    const { value: name } = identifier;
 
     if (mode === "regular" && !name.startsWith("$")) {
       return new StringValue(name);
@@ -180,6 +186,6 @@ export class Evaluator {
 
   private evalAssignment(statement: Assignment): void {
     const value = this.evalExpression(statement.rhs, "regular");
-    this.variables.set(statement.lhs.t.value, value);
+    this.variables.set(statement.lhs.value, value);
   }
 }

@@ -43,10 +43,11 @@ Deno.test("undefined variable in arithmetic expression", () => {
   assertStdout("echo $(($a+$a))", ["0"]);
 });
 
-Deno.test("undefined variable", () => assertStdout("echo $a", [""]));
-
 Deno.test("string without quotes", () => assertStdout("echo hello", ["hello"]));
 Deno.test("string with", () => assertStdout('echo "hello"', ["hello"]));
+
+Deno.test("undefined variable", () => assertStdout("echo $a", [""]));
+Deno.test("useless expression", () => assertStdout("$((0+0))", []));
 
 function assertStdout(program: string, expectedOutputs: string[]) {
   const parser = new Parser(new Lexer(program));
