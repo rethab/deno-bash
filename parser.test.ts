@@ -2,13 +2,12 @@ import { assertEquals } from "https://deno.land/std@0.153.0/testing/asserts.ts";
 import { Lexer } from "./lexer.ts";
 import {
   ArithmeticExpression,
-  ArithmeticInfixExpression,
   Assignment,
-  BooleanExpression,
   Condition,
   ExpressionStatement,
   FunctionApplication,
   Identifier,
+  InfixExpression,
   NumberConstant,
   Operator,
   Parser,
@@ -44,14 +43,150 @@ Deno.test("arithmetic expression constant", () => {
   });
 });
 
+Deno.test("arithmetic expression nested", () => {
+  assertProgram("$(($((3))))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(
+          new ArithmeticExpression(new NumberConstant(3)),
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("arithmetic expression with braces", () => {
+  assertProgram("$(((((3)))))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(new NumberConstant(3)),
+      ),
+    ],
+  });
+});
+
+Deno.test("operator precedence addition", () => {
+  assertProgram("$((5 + 4 + 3))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(
+          new InfixExpression(
+            new InfixExpression(
+              new NumberConstant(5),
+              new NumberConstant(4),
+              Operator.Plus,
+            ),
+            new NumberConstant(3),
+            Operator.Plus,
+          ),
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("operator precedence addition", () => {
+  assertProgram("$((5 + 4 + 3 + 2 + 1))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(
+          new InfixExpression(
+            new InfixExpression(
+              new InfixExpression(
+                new InfixExpression(
+                  new NumberConstant(5),
+                  new NumberConstant(4),
+                  Operator.Plus,
+                ),
+                new NumberConstant(3),
+                Operator.Plus,
+              ),
+              new NumberConstant(2),
+              Operator.Plus,
+            ),
+            new NumberConstant(1),
+            Operator.Plus,
+          ),
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("operator precedence addition with braces", () => {
+  assertProgram("$((5 + (4 + 3)))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(
+          new InfixExpression(
+            new NumberConstant(5),
+            new InfixExpression(
+              new NumberConstant(4),
+              new NumberConstant(3),
+              Operator.Plus,
+            ),
+            Operator.Plus,
+          ),
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("operator precedence multiplication left-to-right", () => {
+  assertProgram("$((5 * 4 + 3))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(
+          new InfixExpression(
+            new InfixExpression(
+              new NumberConstant(5),
+              new NumberConstant(4),
+              Operator.Asterisk,
+            ),
+            new NumberConstant(3),
+            Operator.Plus,
+          ),
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("operator precedence multiplication between additions", () => {
+  assertProgram("$((5 + 4 * 3 + 2))", {
+    statements: [
+      new ExpressionStatement(
+        new ArithmeticExpression(
+          new InfixExpression(
+            new InfixExpression(
+              new NumberConstant(5),
+              new InfixExpression(
+                new NumberConstant(4),
+                new NumberConstant(3),
+                Operator.Asterisk,
+              ),
+              Operator.Plus,
+            ),
+            new NumberConstant(2),
+            Operator.Plus,
+          ),
+        ),
+      ),
+    ],
+  });
+});
+
 Deno.test("arithmetic expression addition", () => {
   assertProgram("$((5 + 4))", {
     statements: [
       new ExpressionStatement(
-        new ArithmeticInfixExpression(
-          new NumberConstant(5),
-          new NumberConstant(4),
-          Operator.Plus,
+        new ArithmeticExpression(
+          new InfixExpression(
+            new NumberConstant(5),
+            new NumberConstant(4),
+            Operator.Plus,
+          ),
         ),
       ),
     ],
@@ -62,10 +197,12 @@ Deno.test("arithmetic expression addition with variable", () => {
   assertProgram("$((a + 4))", {
     statements: [
       new ExpressionStatement(
-        new ArithmeticInfixExpression(
-          new Identifier("a"),
-          new NumberConstant(4),
-          Operator.Plus,
+        new ArithmeticExpression(
+          new InfixExpression(
+            new Identifier("a"),
+            new NumberConstant(4),
+            Operator.Plus,
+          ),
         ),
       ),
     ],
@@ -76,7 +213,7 @@ Deno.test("condition (if else)", () => {
   assertProgram("if [ a = b ]; then c else d fi", {
     statements: [
       new Condition(
-        new BooleanExpression(
+        new InfixExpression(
           new Identifier("a"),
           new Identifier("b"),
           Operator.Equal,
@@ -92,9 +229,61 @@ Deno.test("condition (only if)", () => {
   assertProgram("if [ a = b ]; then c fi", {
     statements: [
       new Condition(
-        new BooleanExpression(
+        new InfixExpression(
           new Identifier("a"),
           new Identifier("b"),
+          Operator.Equal,
+        ),
+        new ExpressionStatement(new Identifier("c")),
+      ),
+    ],
+  });
+});
+
+Deno.test("condition (nested expression)", () => {
+  assertProgram("if [ $((a + 1)) = b ]; then c fi", {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new ArithmeticExpression(
+            new InfixExpression(
+              new Identifier("a"),
+              new NumberConstant(1),
+              Operator.Plus,
+            ),
+          ),
+          new Identifier("b"),
+          Operator.Equal,
+        ),
+        new ExpressionStatement(new Identifier("c")),
+      ),
+    ],
+  });
+});
+
+Deno.test("condition (nested expression 2)", () => {
+  assertProgram("if [ $((a + 1)) = $((b + 1 * 2)) ]; then c fi", {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new ArithmeticExpression(
+            new InfixExpression(
+              new Identifier("a"),
+              new NumberConstant(1),
+              Operator.Plus,
+            ),
+          ),
+          new ArithmeticExpression(
+            new InfixExpression(
+              new Identifier("b"),
+              new InfixExpression(
+                new NumberConstant(1),
+                new NumberConstant(2),
+                Operator.Asterisk,
+              ),
+              Operator.Plus,
+            ),
+          ),
           Operator.Equal,
         ),
         new ExpressionStatement(new Identifier("c")),
@@ -107,7 +296,7 @@ Deno.test("condition (semicolons)", () => {
   assertProgram("if [ a = b ]; then c; else d; fi", {
     statements: [
       new Condition(
-        new BooleanExpression(
+        new InfixExpression(
           new Identifier("a"),
           new Identifier("b"),
           Operator.Equal,
@@ -123,7 +312,7 @@ Deno.test("condition with function application", () => {
   assertProgram("if [ a = b ]; then echo c fi", {
     statements: [
       new Condition(
-        new BooleanExpression(
+        new InfixExpression(
           new Identifier("a"),
           new Identifier("b"),
           Operator.Equal,
@@ -138,7 +327,7 @@ Deno.test("condition with arithmetic expression", () => {
   assertProgram("if [ a = b ]; then echo $((5+5)) fi", {
     statements: [
       new Condition(
-        new BooleanExpression(
+        new InfixExpression(
           new Identifier("a"),
           new Identifier("b"),
           Operator.Equal,
@@ -146,10 +335,12 @@ Deno.test("condition with arithmetic expression", () => {
         new FunctionApplication(
           new Identifier("echo"),
           [
-            new ArithmeticInfixExpression(
-              new NumberConstant(5),
-              new NumberConstant(5),
-              Operator.Plus,
+            new ArithmeticExpression(
+              new InfixExpression(
+                new NumberConstant(5),
+                new NumberConstant(5),
+                Operator.Plus,
+              ),
             ),
           ],
         ),

@@ -42,21 +42,53 @@ Deno.test("arithmetic expansion", () => {
   assertTokens("$((5))", [
     { type: "OP", value: "$((" },
     { type: "NUMBER", value: "5" },
-    { type: "OP", value: "))" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
   ]);
   assertTokens("$((5 + 4))", [
     { type: "OP", value: "$((" },
     { type: "NUMBER", value: "5" },
     { type: "OP", value: "+" },
     { type: "NUMBER", value: "4" },
-    { type: "OP", value: "))" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+  ]);
+  assertTokens("$((5 * 4))", [
+    { type: "OP", value: "$((" },
+    { type: "NUMBER", value: "5" },
+    { type: "OP", value: "*" },
+    { type: "NUMBER", value: "4" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
   ]);
   assertTokens("$((0 + 4))", [
     { type: "OP", value: "$((" },
     { type: "NUMBER", value: "0" },
     { type: "OP", value: "+" },
     { type: "NUMBER", value: "4" },
-    { type: "OP", value: "))" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+  ]);
+});
+
+Deno.test("braces", () => {
+  assertTokens("$(((5)))", [
+    { type: "OP", value: "$((" },
+    { type: "OP", value: "(" },
+    { type: "NUMBER", value: "5" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+  ]);
+  assertTokens("$((((5))))", [
+    { type: "OP", value: "$((" },
+    { type: "OP", value: "(" },
+    { type: "OP", value: "(" },
+    { type: "NUMBER", value: "5" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
   ]);
 });
 

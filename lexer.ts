@@ -1,6 +1,6 @@
 import * as moo from "https://deno.land/x/moo@0.5.1-deno.2/mod.ts";
 
-type TokenType = "OP" | "KEYWORD" | "STRING" | "NUMBER" | "IDENTIFIER";
+export type TokenType = "OP" | "KEYWORD" | "STRING" | "NUMBER" | "IDENTIFIER";
 
 export interface Token {
   type: TokenType;
@@ -12,7 +12,7 @@ export class Lexer {
   constructor(input: string) {
     this.l = moo.compile({
       WS: / /,
-      OP: ["[", "]", "=", "$((", "))", "+"],
+      OP: ["[", "]", "=", "$((", "(", ")", "+", "*"],
       KEYWORD: [";", "if", "then", "else", "fi"],
       STRING: { match: /"(?:[^"]*)"/, value: (s) => s.slice(1, -1) },
       NUMBER: /[0-9]+/,

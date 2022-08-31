@@ -1,13 +1,12 @@
 import {
   ArithmeticExpression,
-  ArithmeticInfixExpression,
   Assignment,
-  BooleanExpression,
   Condition,
   Expression,
   ExpressionStatement,
   FunctionApplication,
   Identifier,
+  InfixExpression,
   NumberConstant,
   Operator,
   Program,
@@ -100,12 +99,8 @@ export class Evaluator {
       return this.evalExpression(exp.expression, "arithmetic");
     }
 
-    if (exp instanceof ArithmeticInfixExpression) {
-      return this.evalInfixExpression(exp.lhs, exp.op, exp.rhs, "arithmetic");
-    }
-
-    if (exp instanceof BooleanExpression) {
-      return this.evalInfixExpression(exp.lhs, exp.op, exp.rhs, "regular");
+    if (exp instanceof InfixExpression) {
+      return this.evalInfixExpression(exp.lhs, exp.op, exp.rhs, mode);
     }
 
     if (exp instanceof Identifier) {

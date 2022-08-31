@@ -6,26 +6,14 @@ export interface Program {
 
 export interface Expression {}
 
-export class BooleanExpression implements Expression {
+export class InfixExpression implements Expression {
   constructor(
     public readonly lhs: Expression,
     public readonly rhs: Expression,
     public readonly op: Operator,
   ) {}
-
   toString(): string {
     return `${this.lhs} ${this.op} ${this.rhs}`;
-  }
-}
-
-export class ArithmeticInfixExpression implements Expression {
-  constructor(
-    public readonly lhs: Expression,
-    public readonly rhs: Expression,
-    public readonly op: Operator,
-  ) {}
-  toString(): string {
-    return `$((${this.lhs} ${this.op} ${this.rhs}))`;
   }
 }
 
@@ -59,9 +47,20 @@ export class StringConstant implements Expression {
   }
 }
 
+enum Precedence {
+  Lowest,
+  Equals, // ==
+  LessGreater, // < or >
+  Sum, // +
+  Product, // *
+  Prefix, // -x or !x
+  Call, // function(x)
+}
+
 export enum Operator {
   Equal = "=",
   Plus = "+",
+  Asterisk = "*",
 }
 
 export interface Statement {}
@@ -94,6 +93,9 @@ export class FunctionApplication implements Statement, Expression {
   }
 }
 
+type PrefixParseFunction = (t: Token) => Expression;
+type InfixParseFunction = (e: Expression) => Expression;
+
 export class Parser {
   private curToken?: Token;
   private nextToken?: Token;
@@ -114,39 +116,68 @@ export class Parser {
     return { statements };
   }
 
+  private prefixParseFunction(token: Token): PrefixParseFunction {
+    const { type, value } = token;
+
+    if (type === "NUMBER") return (t: Token) => this.parseNumber(t);
+    if (type === "STRING") return (t: Token) => this.parseString(t);
+    if (type === "IDENTIFIER") return (t: Token) => this.parseIdentifier(t);
+
+    if (type === "OP" && value === "(") {
+      return () => this.parseGroupedExpression();
+    }
+
+    if (type === "OP" && value === "$((") {
+      return () => this.parseArithmeticExpression();
+    }
+
+    if (type === "KEYWORD" && value === "if") {
+      return () => this.parseConditionStatement();
+    }
+
+    throw new Error(`Unhandled expression '${token.value} (${token.type})`);
+  }
+
+  private infixParseFunction(token: Token): InfixParseFunction {
+    const { type, value } = token;
+    if (type === "OP") {
+      if (value === "+" || value === "*" || value === "=") {
+        return this.parseInfixExpression.bind(this);
+      }
+    }
+
+    throw new Error(`Unhandled expression '${token.value} (${token.type})`);
+  }
+
   private advanceToken() {
     this.curToken = this.nextToken;
     this.nextToken = this.lexer.next();
   }
 
   private parseStatement(): Statement {
-    if (this.isKeyword("if")) {
-      return this.parseConditionStatement();
+    if (this.nextToken?.value === "=") {
+      return this.parseAssignment(this.curToken!!);
     }
 
-    if (this.nextToken?.type === "OP" && this.nextToken?.value === "=") {
-      return this.parseAssignment();
+    if (this.curToken?.value === "if") {
+      return this.parseConditionStatement();
     }
 
     if (this.curToken?.type === "IDENTIFIER") {
       if (this.isFunctionApplication()) {
-        return this.parseFunctionApplication();
+        return this.parseFunctionApplication(this.curToken);
       }
 
-      return new ExpressionStatement(this.parseIdentifier());
+      return new ExpressionStatement(this.parseIdentifier(this.curToken));
     }
 
-    if (this.isOperator("$((")) {
-      return new ExpressionStatement(this.parseArithmeticExpression());
-    }
-
-    throw new Error(`Unhandled statement ${this.curToken?.value}`);
+    return new ExpressionStatement(this.parseExpression(Precedence.Lowest));
   }
 
   private parseConditionStatement(): Condition {
     this.consumeToken({ type: "KEYWORD", value: "if" });
     this.consumeToken({ type: "OP", value: "[" });
-    const expression = this.parseExpression(true);
+    const expression = this.parseExpression(Precedence.Lowest);
     this.consumeToken({ type: "OP", value: "]" });
     this.consumeToken({ type: "KEYWORD", value: ";" });
     this.consumeToken({ type: "KEYWORD", value: "then" });
@@ -171,42 +202,43 @@ export class Parser {
     );
   }
 
-  private parseAssignment() {
-    const lhs = this.parseIdentifier();
+  private parseAssignment(curToken: Token) {
+    const lhs = this.parseIdentifier(curToken);
     this.consumeToken({ type: "OP", value: "=" });
-    const rhs = this.parseExpression(true);
+    const rhs = this.parseExpression(Precedence.Lowest);
 
     return new Assignment(lhs, rhs);
   }
 
-  private parseExpression(recurse: boolean): Expression {
-    if (recurse && this.nextToken?.type === "OP") {
-      return this.parseBooleanExpression();
+  private parseExpression(precedence: Precedence): Expression {
+    if (!this.curToken) {
+      throw new Error(`Unhandled case: no current token`);
     }
 
-    if (this.curToken?.type === "IDENTIFIER") {
-      return this.parseIdentifier();
+    const prefixParser = this.prefixParseFunction(this.curToken);
+
+    if (!prefixParser) {
+      throw new Error(
+        `Unhandled case: No prefix parser for '${this.curToken.value}' (${this.curToken.type})`,
+      );
     }
 
-    if (this.curToken?.type === "NUMBER") {
-      const number = new NumberConstant(Number(this.curToken?.value));
-      this.advanceToken();
-      return number;
+    let leftExpression = prefixParser(this.curToken);
+
+    while (
+      this.curToken && !this.isSemicolon() &&
+      precedence < this.precedence(this.curToken)
+    ) {
+      const infixParseFunction = this.infixParseFunction(this.curToken);
+
+      if (!infixParseFunction) {
+        return leftExpression;
+      }
+
+      leftExpression = infixParseFunction(leftExpression);
     }
 
-    if (this.curToken?.type === "STRING") {
-      const string = new StringConstant(this.curToken.value);
-      this.advanceToken();
-      return string;
-    }
-
-    if (this.isOperator("$((")) {
-      return this.parseArithmeticExpression();
-    }
-
-    throw new Error(
-      `Unhandled expression '${this.curToken?.value}' (${this.curToken?.type})`,
-    );
+    return leftExpression;
   }
 
   private parseOperator(): Operator {
@@ -217,21 +249,68 @@ export class Parser {
       case "+":
         this.advanceToken();
         return Operator.Plus;
+      case "*":
+        this.advanceToken();
+        return Operator.Asterisk;
     }
 
     throw new Error(`Unsupported Operator ${this.curToken?.value}`);
   }
 
-  private parseIdentifier() {
-    if (this.curToken?.type !== "IDENTIFIER") {
-      throw new Error(
-        `Expected IDENTIFIER but got ${this.curToken?.type} / ${this.curToken?.value}`,
-      );
-    }
-
-    const identifier = new Identifier(this.curToken.value);
+  private parseIdentifier(curToken: Token): Identifier {
+    const identifier = new Identifier(curToken.value);
     this.advanceToken();
     return identifier;
+  }
+
+  private parseNumber(curToken: Token): NumberConstant {
+    const number = new NumberConstant(Number(curToken.value));
+    this.advanceToken();
+    return number;
+  }
+
+  private parseString(curToken: Token): StringConstant {
+    const string = new StringConstant(curToken.value);
+    this.advanceToken();
+    return string;
+  }
+
+  private parseInfixExpression(lhs: Expression): Expression {
+    const precedence = this.precedence(this.curToken!!);
+    const op = this.parseOperator();
+
+    const rhs = this.parseExpression(precedence);
+
+    return new InfixExpression(lhs, rhs, op);
+  }
+
+  private parseGroupedExpression(): Expression {
+    this.consumeToken({ type: "OP", value: "(" });
+    const expression = this.parseExpression(Precedence.Lowest);
+    this.consumeToken({ type: "OP", value: ")" });
+    return expression;
+  }
+
+  private parseArithmeticExpression() {
+    this.consumeToken({ type: "OP", value: "$((" });
+
+    const expression = this.parseExpression(Precedence.Lowest);
+
+    this.consumeToken({ type: "OP", value: ")" });
+    this.consumeToken({ type: "OP", value: ")" });
+
+    return new ArithmeticExpression(expression);
+  }
+
+  private parseFunctionApplication(curToken: Token) {
+    const name = this.parseIdentifier(curToken);
+    const parameters = [];
+    while (this.curToken && !this.isSemicolon() && !this.isKeyword()) {
+      const parameter = this.parseExpression(Precedence.Lowest);
+      parameters.push(parameter);
+    }
+
+    return new FunctionApplication(name, parameters);
   }
 
   private consumeToken(expected: Token) {
@@ -247,41 +326,12 @@ export class Parser {
     this.advanceToken();
   }
 
-  private parseBooleanExpression() {
-    const lhs = this.parseExpression(false);
-    const op = this.parseOperator();
-    const rhs = this.parseExpression(false);
-    return new BooleanExpression(lhs, rhs, op);
-  }
-
-  private parseArithmeticExpression() {
-    this.consumeToken({ type: "OP", value: "$((" });
-    const lhs = this.parseExpression(false);
-
-    if (this.isOperator("))")) {
-      this.consumeToken({ type: "OP", value: "))" });
-      return new ArithmeticExpression(lhs);
-    }
-
-    const op = this.parseOperator();
-    const rhs = this.parseExpression(false);
-    this.consumeToken({ type: "OP", value: "))" });
-    return new ArithmeticInfixExpression(lhs, rhs, op);
-  }
-
-  private parseFunctionApplication() {
-    const name = this.parseIdentifier();
-    const parameters = [];
-    while (this.curToken && !this.isSemicolon() && !this.isKeyword()) {
-      const parameter = this.parseExpression(false);
-      parameters.push(parameter);
-    }
-
-    return new FunctionApplication(name, parameters);
-  }
-
   private isSemicolon(): boolean {
     return this.curToken?.type === "KEYWORD" && this.curToken.value === ";";
+  }
+
+  private nextIsSemicolon(): boolean {
+    return this.nextToken?.type === "KEYWORD" && this.nextToken.value === ";";
   }
 
   private skipSemicolon() {
@@ -299,10 +349,33 @@ export class Parser {
     return this.curToken?.type === "OP" && this.curToken.value === value;
   }
 
+  private isClosingArithmeticExpansion(): boolean {
+    return this.isOperator(")") && this.nextToken?.type === "OP" &&
+      this.nextToken.value === ")";
+  }
+
   private isFunctionApplication() {
     return this.nextToken?.type === "IDENTIFIER" ||
       this.nextToken?.type === "STRING" ||
       this.nextToken?.type === "NUMBER" ||
       this.nextToken?.type === "OP";
+  }
+
+  private precedence(token: Token): Precedence {
+    const { type, value } = token;
+
+    if (type === "OP" && value === "=") {
+      return Precedence.Equals;
+    }
+
+    if (type === "OP" && value === "+") {
+      return Precedence.Sum;
+    }
+
+    if (type === "OP" && value === "*") {
+      return Precedence.Product;
+    }
+
+    return Precedence.Lowest;
   }
 }
