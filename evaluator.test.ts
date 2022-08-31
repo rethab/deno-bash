@@ -8,6 +8,14 @@ Deno.test("constant", () => assertStdout("echo 5", ["5"]));
 Deno.test("arithmetic constant", () => assertStdout("echo $((5))", ["5"]));
 Deno.test("arithmetic addition", () => assertStdout("echo $((5+5))", ["10"]));
 Deno.test("arithmetic addition 2", () => assertStdout("echo $((5+0))", ["5"]));
+Deno.test("arithmetic expression precedence", () => {
+  assertStdout("echo $((5+4+3+2+1))", ["15"]);
+  assertStdout("echo $((1 + 5 * 5))", ["26"]);
+  assertStdout("echo $((1 * 5 * 5))", ["25"]);
+  assertStdout("echo $(((1 + 5) * 5))", ["30"]);
+  assertStdout("echo $(((1 + 5) * (7 + 8)))", ["90"]);
+  assertStdout("echo $(((1 + 2) * 3 + 4 * 5 + 6))", ["35"]);
+});
 
 Deno.test("condition if-only", () =>
   assertStdout("if [ 5 = 5 ]; then echo 6 fi", ["6"]));
