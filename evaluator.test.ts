@@ -27,8 +27,11 @@ Deno.test("condition arithmetic expression", () =>
   assertStdout("if [ 5 = 5 ]; then echo $((5+5)) fi", ["10"]));
 
 Deno.test("variable assignment", () => assertStdout("a=5; echo $a", ["5"]));
-Deno.test("two variable assignment", () =>
-  assertStdout("a=5; b=6; echo $b", ["6"]));
+Deno.test("multiple variable assignment", () => {
+  assertStdout("a=5; b=6; echo $b", ["6"]);
+  assertStdout("a=5; b=$a; echo $b", ["5"]);
+  assertStdout("a=5; b=$a; c=$b; echo $c", ["5"]);
+});
 Deno.test("variable use in arithmetic expression", () => {
   assertStdout("a=5; echo $((a+4))", ["9"]);
   assertStdout("a=5; echo $((a+a))", ["10"]);
