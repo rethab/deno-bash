@@ -218,7 +218,7 @@ export class Evaluator {
     let varName = "";
     for (; i < string.length; i++) {
       if (!string[i].match(/[a-zA-Z0-9_]/)) {
-        i--;
+        i--; // read too far, current char is part of string again
         break;
       }
       varName += string[i];
