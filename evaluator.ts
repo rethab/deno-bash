@@ -150,6 +150,11 @@ export class Evaluator {
         return new NumberValue(left.n + right.n);
       }
     }
+    if (op == Operator.Asterisk) {
+      if (left instanceof NumberValue && right instanceof NumberValue) {
+        return new NumberValue(left.n * right.n);
+      }
+    }
     if (op == Operator.Equal) {
       if (left instanceof NumberValue && right instanceof NumberValue) {
         return new BooleanValue(left.n === right.n);
