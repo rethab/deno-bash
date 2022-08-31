@@ -57,12 +57,50 @@ Deno.test("undefined variable in arithmetic expression", () => {
 Deno.test("string without quotes", () => assertStdout("echo hello", ["hello"]));
 Deno.test("string with", () => assertStdout('echo "hello"', ["hello"]));
 
+Deno.test("parameter expansion", () => {
+  assertStdout('a=foo; echo "$a"', ["foo"]);
+  assertStdout('A=foo; echo "$A"', ["foo"]);
+  assertStdout('aBc1_z=foo; echo "$aBc1_z"', ["foo"]);
+  assertStdout('A_=foo; echo "$A_"', ["foo"]);
+  assertStdout('A1=foo; echo "$A1"', ["foo"]);
+  assertStdout('a=world; echo "hello $a"', ["hello world"]);
+  assertStdout('a=hello; echo "$a world"', ["hello world"]);
+  assertStdout('hello=hello;world=world; echo "$hello $world"', [
+    "hello world",
+  ]);
+  assertStdout('hello=hello;world=" world"; echo "$hello$world"', [
+    "hello world",
+  ]);
+  assertStdout('echo "\\$a"', ["$a"]);
+  assertStdout('a=foo; echo "\\$$a"', ["$foo"]);
+  assertStdout('a=a;b="$a$a"; echo "$b"', ["aa"]);
+  assertStdout('a=a;b="$a$a$a"; echo "$b"', ["aaa"]);
+  assertStdout('a=a;b="$a $a"; echo "$b"', ["a a"]);
+});
+
+Deno.test("parameter expansion curly braces", () => {
+  assertStdout('foo=bar; echo "${foo}"', ["bar"]);
+  assertStdout('foo=bar; echo "${foo}bar"', ["barbar"]);
+  assertStdout('foo=bar; echo "bar${foo}"', ["barbar"]);
+  assertStdout('foo=bar; echo "bar${foo}bar"', ["barbarbar"]);
+  assertStdout('foo=bar; echo "bar{foo}bar"', ["bar{foo}bar"]);
+});
+
 Deno.test("undefined variable", () => assertStdout("echo $a", [""]));
+Deno.test("string expansion undefined variable", () =>
+  assertStdout('echo "$a"', [""]));
 Deno.test("useless expression", () => assertStdout("$((0+0))", []));
 
 function assertStdout(program: string, expectedOutputs: string[]) {
   const parser = new Parser(new Lexer(program));
   const evaluator = new Evaluator();
   const outputs = evaluator.run(parser.parse());
-  assertEquals(outputs, expectedOutputs);
+  assertEquals(
+    outputs,
+    expectedOutputs,
+    `
+Program: '${program}'
+Expected: '${expectedOutputs[0]}'
+Actual: '${outputs[0]}'`,
+  );
 }

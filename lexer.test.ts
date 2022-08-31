@@ -36,6 +36,11 @@ Deno.test("declare variables", () => {
     { type: "OP", value: "=" },
     { type: "IDENTIFIER", value: "B2" },
   ]);
+  assertTokens("aBc1_z=X", [
+    { type: "IDENTIFIER", value: "aBc1_z" },
+    { type: "OP", value: "=" },
+    { type: "IDENTIFIER", value: "X" },
+  ]);
 });
 
 Deno.test("arithmetic expansion", () => {

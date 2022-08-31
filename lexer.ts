@@ -16,12 +16,13 @@ export class Lexer {
       KEYWORD: [";", "if", "then", "else", "fi"],
       STRING: { match: /"(?:[^"]*)"/, value: (s) => s.slice(1, -1) },
       NUMBER: /[0-9]+/,
-      IDENTIFIER: /\$?[A-Za-z0-9]+/,
+      IDENTIFIER: /\$?[A-Za-z0-9_]+/,
     }).reset(input);
   }
 
   next(): Token | undefined {
     let token = this.l.next();
+
     while (token?.type === "WS") {
       token = this.l.next();
     }

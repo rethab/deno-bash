@@ -92,7 +92,7 @@ export class Evaluator {
     }
 
     if (exp instanceof StringConstant) {
-      return new StringValue(exp.s);
+      return this.evalString(exp);
     }
 
     if (exp instanceof ArithmeticExpression) {
@@ -187,5 +187,46 @@ export class Evaluator {
   private evalAssignment(statement: Assignment): void {
     const value = this.evalExpression(statement.rhs, "regular");
     this.variables.set(statement.lhs.value, value);
+  }
+
+  private evalString(exp: StringConstant) {
+    let output = "";
+
+    for (let i = 0; i < exp.s.length; i++) {
+      const char = exp.s[i];
+
+      if (char === "\\") {
+        output += exp.s[++i];
+      } else if (char === "$") {
+        const [substitution, newI] = this.substituteVariable(exp.s, i);
+        i = newI;
+        output += substitution;
+      } else {
+        output += char;
+      }
+    }
+
+    return new StringValue(output);
+  }
+
+  private substituteVariable(string: string, i: number): [string, number] {
+    i++; // skip $
+
+    const curly = string[i] === "{";
+    if (curly) i++; // skip {
+
+    let varName = "";
+    for (; i < string.length; i++) {
+      if (!string[i].match(/[a-zA-Z0-9_]/)) {
+        i--;
+        break;
+      }
+      varName += string[i];
+    }
+    const result = this.variables.get(varName)?.show() ?? "";
+
+    if (curly) i++; // skip }
+
+    return [result, i];
   }
 }
