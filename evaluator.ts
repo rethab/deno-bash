@@ -14,7 +14,7 @@ import {
   StringConstant,
 } from "./parser.ts";
 
-interface Value {
+export interface Value {
   show(): string;
 }
 
@@ -40,7 +40,7 @@ class BooleanValue implements Value {
   }
 }
 
-class StringValue implements Value {
+export class StringValue implements Value {
   constructor(public readonly s: string) {}
 
   show(): string {
@@ -53,9 +53,10 @@ export interface Stdout {
 }
 
 export class Evaluator {
-  private variables: Map<string, Value> = new Map();
-
-  constructor(private stdout: Stdout) {}
+  constructor(
+    private variables: Map<string, Value>,
+    private stdout: Stdout,
+  ) {}
 
   run(p: Program) {
     for (const statement of p.statements) {
