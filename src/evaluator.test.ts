@@ -25,6 +25,8 @@ Deno.test("condition if-else true", () =>
   assertStdout("if [ 7 = 5 ]; then echo 6; else echo 7; fi", ["7"]));
 Deno.test("condition arithmetic expression", () =>
   assertStdout("if [ 5 = 5 ]; then echo $((5+5)); fi", ["10"]));
+Deno.test("condition with variable", () =>
+  assertStdout("a=5; if [ 5 = $a ]; then echo yes; fi", ["yes"]));
 
 Deno.test("variable assignment", () => assertStdout("a=5; echo $a", ["5"]));
 Deno.test("multiple variable assignment", () => {

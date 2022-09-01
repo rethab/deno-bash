@@ -2,6 +2,7 @@ import * as moo from "https://deno.land/x/moo@0.5.1-deno.2/mod.ts";
 
 export type TokenType =
   | "OP"
+  | "NEWLINE"
   | "KEYWORD"
   | "STRING"
   | "NUMBER"
@@ -21,6 +22,7 @@ export class Lexer {
     this.l = moo.compileStates({
       main: {
         WS: / /,
+        NEWLINE: { match: "\n", lineBreaks: true },
         ARITHMETIC_OPEN: { match: "$((", push: "arith" },
         OP: ["[", "]", "=", "(", ")", "+"],
         KEYWORD: [";", "if", "then", "else", "fi"],

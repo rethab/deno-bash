@@ -225,6 +225,58 @@ Deno.test("condition (if else)", () => {
   });
 });
 
+Deno.test("condition (if else, multiline)", () => {
+  const expectedProgram = {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new StringConstant("a"),
+          new StringConstant("b"),
+          Operator.Equal,
+        ),
+        new ExpressionStatement(new StringConstant("c")),
+        new ExpressionStatement(
+          new FunctionApplication(
+            new StringConstant("echo"),
+            [new StringConstant("d")],
+          ),
+        ),
+      ),
+    ],
+  };
+  assertProgram(
+    `
+if [ a = b ]; then
+  c;
+else
+  echo d
+fi`,
+    expectedProgram,
+  );
+  assertProgram(
+    `
+if [ a = b ]; then
+  c
+else
+  echo d;
+fi`,
+    expectedProgram,
+  );
+  assertProgram(
+    `
+if [ a = b ]; then
+  c
+else echo d; fi`,
+    expectedProgram,
+  );
+  assertProgram(
+    `
+if [ a = b ]; then c
+else echo d; fi`,
+    expectedProgram,
+  );
+});
+
 Deno.test("condition (only if)", () => {
   assertProgram("if [ a = b ]; then c; fi", {
     statements: [

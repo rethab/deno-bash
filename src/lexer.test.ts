@@ -208,6 +208,37 @@ Deno.test("command invocation", () => {
   );
 });
 
+Deno.test("if condition multiple lines", () => {
+  assertTokens(
+    `if [ a = b ]; then
+    echo c
+  else
+    echo d;
+  fi`,
+    [
+      { type: "KEYWORD", value: "if" },
+      { type: "OP", value: "[" },
+      { type: "STRING", value: "a" },
+      { type: "OP", value: "=" },
+      { type: "STRING", value: "b" },
+      { type: "OP", value: "]" },
+      { type: "KEYWORD", value: ";" },
+      { type: "KEYWORD", value: "then" },
+      { type: "NEWLINE", value: "\n" },
+      { type: "STRING", value: "echo" },
+      { type: "STRING", value: "c" },
+      { type: "NEWLINE", value: "\n" },
+      { type: "KEYWORD", value: "else" },
+      { type: "NEWLINE", value: "\n" },
+      { type: "STRING", value: "echo" },
+      { type: "STRING", value: "d" },
+      { type: "KEYWORD", value: ";" },
+      { type: "NEWLINE", value: "\n" },
+      { type: "KEYWORD", value: "fi" },
+    ],
+  );
+});
+
 function assertTokens(
   input: string,
   tokens: Token[],
@@ -218,7 +249,7 @@ function assertTokens(
   }
   const next = lexer.next();
 
-  assert(!next, `more chars: '${next}'`);
+  assert(!next, `more chars: '${JSON.stringify(next)}'`);
 }
 
 function assertToken(expected: Token, actual: Token) {

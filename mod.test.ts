@@ -10,6 +10,18 @@ Deno.test("arithmetic", () => runProgram("echo $((5 + 5 * 3))", "20\n"));
 
 Deno.test("program name", () => runProgram("echo $0", /.+\.sh\n/));
 
+Deno.test("if condition", () =>
+  runProgram(
+    `
+a=4
+if [ 5 = $a ]; then
+  echo yes
+else
+  echo no
+fi`,
+    "no\n",
+  ));
+
 async function runProgram(
   program: string,
   expectedOutput: string | RegExp,

@@ -104,7 +104,7 @@ export class Evaluator {
     }
 
     if (exp instanceof Identifier) {
-      return this.evalIdentifier(exp, mode);
+      return this.evalArithmeticIdentifier(exp);
     }
 
     if (exp instanceof FunctionApplication) {
@@ -128,30 +128,12 @@ export class Evaluator {
     throw new Error(`Unhandled function ${name}`);
   }
 
-  private evalIdentifier(
-    identifier: Identifier,
-    mode: "regular" | "arithmetic",
-  ): Value {
+  private evalArithmeticIdentifier(identifier: Identifier): Value {
     const { value: name } = identifier;
 
-    if (mode === "regular" && !name.startsWith("$")) {
-      return new StringValue(name);
-    }
+    const lookupName = name.startsWith("$") ? name.slice(1) : name;
 
-    const lookupName = mode === "arithmetic" && !name.startsWith("$")
-      ? name
-      : name.slice(1);
-    const value = this.variables.get(lookupName);
-
-    if (!value && mode === "arithmetic") {
-      return new NumberValue(0);
-    }
-
-    if (!value) {
-      return new StringValue("");
-    }
-
-    return value;
+    return this.variables.get(lookupName) || new NumberValue(0);
   }
 
   private evalInfixExpression(
@@ -205,7 +187,7 @@ export class Evaluator {
     this.variables.set(statement.lhs.value, value);
   }
 
-  private evalString(exp: StringConstant) {
+  private evalString(exp: StringConstant): Value {
     let output = "";
 
     for (let i = 0; i < exp.s.length; i++) {
@@ -215,8 +197,14 @@ export class Evaluator {
         output += exp.s[++i];
       } else if (char === "$") {
         const [substitution, newI] = this.substituteVariable(exp.s, i);
+
+        // substituted everything --> retain type
+        if (i === 0 && newI === exp.s.length) {
+          return substitution;
+        }
+
         i = newI;
-        output += substitution;
+        output += substitution.show();
       } else {
         output += char;
       }
@@ -225,7 +213,10 @@ export class Evaluator {
     return new StringValue(output);
   }
 
-  private substituteVariable(string: string, i: number): [string, number] {
+  private substituteVariable(
+    string: string,
+    i: number,
+  ): [Value, number] {
     i++; // skip $
 
     const curly = string[i] === "{";
@@ -239,10 +230,9 @@ export class Evaluator {
       }
       varName += string[i];
     }
-    const result = this.variables.get(varName)?.show() ?? "";
 
     if (curly) i++; // skip }
 
-    return [result, i];
+    return [this.variables.get(varName) || new StringValue(""), i];
   }
 }

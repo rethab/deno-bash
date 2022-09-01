@@ -110,6 +110,7 @@ export class Parser {
     const statements = [];
 
     while (this.curToken != undefined) {
+      this.skipNewline();
       statements.push(this.parseStatement());
       this.skipSemicolon();
     }
@@ -175,8 +176,10 @@ export class Parser {
     this.consumeToken({ type: "OP", value: "]" });
     this.consumeToken({ type: "KEYWORD", value: ";" });
     this.consumeToken({ type: "KEYWORD", value: "then" });
+    this.skipNewline();
     const consequence = this.parseStatement();
-    this.consumeToken({ type: "KEYWORD", value: ";" });
+    this.skipSemicolon();
+    this.skipNewline();
 
     if (this.curToken?.value === "fi") {
       this.consumeToken({ type: "KEYWORD", value: "fi" });
@@ -185,8 +188,10 @@ export class Parser {
 
     if (this.curToken?.value === "else") {
       this.consumeToken({ type: "KEYWORD", value: "else" });
+      this.skipNewline();
       const other = this.parseStatement();
       this.skipSemicolon();
+      this.skipNewline();
       this.consumeToken({ type: "KEYWORD", value: "fi" });
       return new Condition(expression, consequence, other);
     }
@@ -220,7 +225,7 @@ export class Parser {
     let leftExpression = prefixParser(this.curToken);
 
     while (
-      this.curToken && !this.isSemicolon() &&
+      this.curToken && !this.isSemicolon() && !this.isNewline() &&
       precedence < this.precedence(this.curToken)
     ) {
       const infixParseFunction = this.infixParseFunction(this.curToken);
@@ -304,7 +309,7 @@ export class Parser {
     }
 
     const parameters = [];
-    while (this.curToken && !this.isSemicolon()) {
+    while (this.curToken && !this.isSemicolon() && !this.isNewline()) {
       // using the highest means all expressions are parsed individually without trying to "combine" them
       const parameter = this.parseExpression(Precedence.Highest);
       parameters.push(parameter);
@@ -332,6 +337,16 @@ export class Parser {
 
   private skipSemicolon() {
     if (this.isSemicolon()) {
+      this.advanceToken();
+    }
+  }
+
+  private isNewline() {
+    return this.curToken?.type === "NEWLINE";
+  }
+
+  private skipNewline() {
+    if (this.isNewline()) {
       this.advanceToken();
     }
   }
