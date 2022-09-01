@@ -17,7 +17,7 @@ async function runProgram(
   const filename = Deno.makeTempFileSync({ suffix: ".sh" });
   Deno.writeTextFileSync(filename, program);
   const process = Deno.run({
-    cmd: ["deno", "run", "--allow-read", "main.ts", filename],
+    cmd: ["deno", "run", "--allow-read", "mod.ts", filename],
     stdout: "piped",
   });
   const binaryOut = await process.output();

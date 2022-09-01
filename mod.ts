@@ -1,6 +1,6 @@
-import { Evaluator, StringValue, Value } from "./evaluator.ts";
-import { Lexer } from "./lexer.ts";
-import { Parser } from "./parser.ts";
+import { Evaluator, StringValue, Value } from "./src/evaluator.ts";
+import { Lexer } from "./src/lexer.ts";
+import { Parser } from "./src/parser.ts";
 
 const filename = Deno.args[0];
 const contents = Deno.readTextFileSync(filename);
