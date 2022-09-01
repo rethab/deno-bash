@@ -111,7 +111,7 @@ function assertStdout(program: string, expectedOutputs: string[]) {
       outputs.push(msg);
     },
   };
-  const evaluator = new Evaluator(stdout);
+  const evaluator = new Evaluator(new Map(), stdout);
   evaluator.run(parser.parse());
   assertEquals(
     outputs,
