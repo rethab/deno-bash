@@ -18,6 +18,12 @@ interface Value {
   show(): string;
 }
 
+class Void implements Value {
+  show(): string {
+    return "void";
+  }
+}
+
 class NumberValue implements Value {
   constructor(public readonly n: number) {}
 
@@ -42,40 +48,33 @@ class StringValue implements Value {
   }
 }
 
+export interface Stdout {
+  print(msg: string): void;
+}
+
 export class Evaluator {
   private variables: Map<string, Value> = new Map();
 
-  run(p: Program): string[] {
-    const outputs = [];
+  constructor(private stdout: Stdout) {}
+
+  run(p: Program) {
     for (const statement of p.statements) {
-      outputs.push(...this.evalStatement(statement));
+      this.evalStatement(statement);
     }
-    return outputs;
   }
 
-  private evalStatement(statement: Statement): string[] {
-    if (statement instanceof FunctionApplication) {
-      const name = statement.identifier.value;
-      const parameters = statement.parameters.map((p) =>
-        this.evalExpression(p, "regular")
-      );
-      if (name === "echo") {
-        return [parameters.map((obj) => obj.show()).join(" ")];
-      }
-    }
-
+  private evalStatement(statement: Statement): void {
     if (statement instanceof Condition) {
       return this.evalCondition(statement);
     }
 
     if (statement instanceof Assignment) {
-      this.evalAssignment(statement);
-      return [];
+      return this.evalAssignment(statement);
     }
 
     if (statement instanceof ExpressionStatement) {
       this.evalExpression(statement.expression, "regular");
-      return [];
+      return;
     }
 
     throw new Error(
@@ -107,7 +106,25 @@ export class Evaluator {
       return this.evalIdentifier(exp, mode);
     }
 
+    if (exp instanceof FunctionApplication) {
+      return this.evalFunctionApplication(exp);
+    }
+
     throw new Error(`Unhandled expression ${exp.constructor.name}`);
+  }
+
+  private evalFunctionApplication(exp: FunctionApplication): Value {
+    const name = exp.name.s;
+    const parameters = exp.parameters.map((p) =>
+      this.evalExpression(p, "regular")
+    );
+
+    if (name === "echo") {
+      this.stdout.print(parameters.map((obj) => obj.show()).join(" "));
+      return new Void();
+    }
+
+    throw new Error(`Unhandled function ${name}`);
   }
 
   private evalIdentifier(
@@ -164,7 +181,7 @@ export class Evaluator {
     throw new Error(`Unhandled operator ${op}`);
   }
 
-  private evalCondition(statement: Condition): string[] {
+  private evalCondition(statement: Condition) {
     const condition = this.evalExpression(statement.condition, "regular");
 
     if (!(condition instanceof BooleanValue)) {
@@ -180,8 +197,6 @@ export class Evaluator {
     if (statement.other) {
       return this.evalStatement(statement.other);
     }
-
-    return [];
   }
 
   private evalAssignment(statement: Assignment): void {

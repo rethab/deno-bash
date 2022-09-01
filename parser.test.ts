@@ -18,7 +18,7 @@ import {
 Deno.test("variable assignment", () => {
   assertProgram("a = b", {
     statements: [
-      new Assignment(new Identifier("a"), new Identifier("b")),
+      new Assignment(new Identifier("a"), new StringConstant("b")),
     ],
   });
 });
@@ -210,38 +210,38 @@ Deno.test("arithmetic expression addition with variable", () => {
 });
 
 Deno.test("condition (if else)", () => {
-  assertProgram("if [ a = b ]; then c else d fi", {
+  assertProgram("if [ a = b ]; then c; else d; fi", {
     statements: [
       new Condition(
         new InfixExpression(
-          new Identifier("a"),
-          new Identifier("b"),
+          new StringConstant("a"),
+          new StringConstant("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(new Identifier("c")),
-        new ExpressionStatement(new Identifier("d")),
+        new ExpressionStatement(new StringConstant("c")),
+        new ExpressionStatement(new StringConstant("d")),
       ),
     ],
   });
 });
 
 Deno.test("condition (only if)", () => {
-  assertProgram("if [ a = b ]; then c fi", {
+  assertProgram("if [ a = b ]; then c; fi", {
     statements: [
       new Condition(
         new InfixExpression(
-          new Identifier("a"),
-          new Identifier("b"),
+          new StringConstant("a"),
+          new StringConstant("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(new Identifier("c")),
+        new ExpressionStatement(new StringConstant("c")),
       ),
     ],
   });
 });
 
 Deno.test("condition (nested expression)", () => {
-  assertProgram("if [ $((a + 1)) = b ]; then c fi", {
+  assertProgram("if [ $((a + 1)) = b ]; then c; fi", {
     statements: [
       new Condition(
         new InfixExpression(
@@ -252,17 +252,17 @@ Deno.test("condition (nested expression)", () => {
               Operator.Plus,
             ),
           ),
-          new Identifier("b"),
+          new StringConstant("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(new Identifier("c")),
+        new ExpressionStatement(new StringConstant("c")),
       ),
     ],
   });
 });
 
 Deno.test("condition (nested expression 2)", () => {
-  assertProgram("if [ $((a + 1)) = $((b + 1 * 2)) ]; then c fi", {
+  assertProgram("if [ $((a + 1)) = $((b + 1 * 2)) ]; then c; fi", {
     statements: [
       new Condition(
         new InfixExpression(
@@ -286,7 +286,7 @@ Deno.test("condition (nested expression 2)", () => {
           ),
           Operator.Equal,
         ),
-        new ExpressionStatement(new Identifier("c")),
+        new ExpressionStatement(new StringConstant("c")),
       ),
     ],
   });
@@ -297,52 +297,58 @@ Deno.test("condition (semicolons)", () => {
     statements: [
       new Condition(
         new InfixExpression(
-          new Identifier("a"),
-          new Identifier("b"),
+          new StringConstant("a"),
+          new StringConstant("b"),
           Operator.Equal,
         ),
-        new ExpressionStatement(new Identifier("c")),
-        new ExpressionStatement(new Identifier("d")),
+        new ExpressionStatement(new StringConstant("c")),
+        new ExpressionStatement(new StringConstant("d")),
       ),
     ],
   });
 });
 
 Deno.test("condition with function application", () => {
-  assertProgram("if [ a = b ]; then echo c fi", {
+  assertProgram("if [ a = b ]; then echo c; fi", {
     statements: [
       new Condition(
         new InfixExpression(
-          new Identifier("a"),
-          new Identifier("b"),
+          new StringConstant("a"),
+          new StringConstant("b"),
           Operator.Equal,
         ),
-        new FunctionApplication(new Identifier("echo"), [new Identifier("c")]),
+        new ExpressionStatement(
+          new FunctionApplication(new StringConstant("echo"), [
+            new StringConstant("c"),
+          ]),
+        ),
       ),
     ],
   });
 });
 
 Deno.test("condition with arithmetic expression", () => {
-  assertProgram("if [ a = b ]; then echo $((5+5)) fi", {
+  assertProgram("if [ a = b ]; then echo $((5+5)); fi", {
     statements: [
       new Condition(
         new InfixExpression(
-          new Identifier("a"),
-          new Identifier("b"),
+          new StringConstant("a"),
+          new StringConstant("b"),
           Operator.Equal,
         ),
-        new FunctionApplication(
-          new Identifier("echo"),
-          [
-            new ArithmeticExpression(
-              new InfixExpression(
-                new NumberConstant(5),
-                new NumberConstant(5),
-                Operator.Plus,
+        new ExpressionStatement(
+          new FunctionApplication(
+            new StringConstant("echo"),
+            [
+              new ArithmeticExpression(
+                new InfixExpression(
+                  new NumberConstant(5),
+                  new NumberConstant(5),
+                  Operator.Plus,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     ],
@@ -350,41 +356,97 @@ Deno.test("condition with arithmetic expression", () => {
 });
 
 Deno.test("function application", () => {
+  assertProgram("echo 5", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new NumberConstant(5)],
+        ),
+      ),
+    ],
+  });
+
+  assertProgram("echo 5 6", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new NumberConstant(5), new NumberConstant(6)],
+        ),
+      ),
+    ],
+  });
+
+  assertProgram("echo 5 6 7 8", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [
+            new NumberConstant(5),
+            new NumberConstant(6),
+            new NumberConstant(7),
+            new NumberConstant(8),
+          ],
+        ),
+      ),
+    ],
+  });
+
   assertProgram("echo $((5))", {
     statements: [
-      new FunctionApplication(
-        new Identifier("echo"),
-        [new ArithmeticExpression(new NumberConstant(5))],
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new ArithmeticExpression(new NumberConstant(5))],
+        ),
+      ),
+    ],
+  });
+
+  assertProgram("echo $((5)) 4", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [
+            new ArithmeticExpression(new NumberConstant(5)),
+            new NumberConstant(4),
+          ],
+        ),
       ),
     ],
   });
 
   assertProgram("echo $a", {
     statements: [
-      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
-    ],
-  });
-
-  assertProgram("echo 5", {
-    statements: [
-      new FunctionApplication(new Identifier("echo"), [new NumberConstant(5)]),
-    ],
-  });
-
-  assertProgram("echo 5 6", {
-    statements: [
-      new FunctionApplication(
-        new Identifier("echo"),
-        [new NumberConstant(5), new NumberConstant(6)],
+      new ExpressionStatement(
+        new FunctionApplication(new StringConstant("echo"), [
+          new StringConstant("$a"),
+        ]),
       ),
     ],
   });
 
   assertProgram('echo "hello"', {
     statements: [
-      new FunctionApplication(new Identifier("echo"), [
-        new StringConstant("hello"),
-      ]),
+      new ExpressionStatement(
+        new FunctionApplication(new StringConstant("echo"), [
+          new StringConstant("hello"),
+        ]),
+      ),
+    ],
+  });
+
+  assertProgram("echo if else", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new StringConstant("if"), new StringConstant("else")],
+        ),
+      ),
     ],
   });
 });
@@ -422,20 +484,35 @@ Deno.test("multiple statement on one line", () => {
   assertProgram("a = 5; echo $a", {
     statements: [
       new Assignment(new Identifier("a"), new NumberConstant(5)),
-      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new StringConstant("$a")],
+        ),
+      ),
     ],
   });
 
   assertProgram("echo $a;", {
     statements: [
-      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new StringConstant("$a")],
+        ),
+      ),
     ],
   });
 
   assertProgram("a=5;echo $a ;b = 7", {
     statements: [
       new Assignment(new Identifier("a"), new NumberConstant(5)),
-      new FunctionApplication(new Identifier("echo"), [new Identifier("$a")]),
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [new StringConstant("$a")],
+        ),
+      ),
       new Assignment(new Identifier("b"), new NumberConstant(7)),
     ],
   });
@@ -445,5 +522,5 @@ function assertProgram(input: string, program: Program) {
   const lexer = new Lexer(input);
   const parser = new Parser(lexer);
   const actualProgram = parser.parse();
-  assertEquals(program, actualProgram);
+  assertEquals(actualProgram, program);
 }

@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.153.0/testing/asserts.ts";
-import { Evaluator } from "./evaluator.ts";
+import { Evaluator, Stdout } from "./evaluator.ts";
 import { Lexer } from "./lexer.ts";
 import { Parser } from "./parser.ts";
 
@@ -18,13 +18,13 @@ Deno.test("arithmetic expression precedence", () => {
 });
 
 Deno.test("condition if-only", () =>
-  assertStdout("if [ 5 = 5 ]; then echo 6 fi", ["6"]));
+  assertStdout("if [ 5 = 5 ]; then echo 6; fi", ["6"]));
 Deno.test("condition if-else", () =>
-  assertStdout("if [ 5 = 5 ]; then echo 6 else echo 7 fi", ["6"]));
+  assertStdout("if [ 5 = 5 ]; then echo 6; else echo 7; fi", ["6"]));
 Deno.test("condition if-else true", () =>
-  assertStdout("if [ 7 = 5 ]; then echo 6 else echo 7 fi", ["7"]));
+  assertStdout("if [ 7 = 5 ]; then echo 6; else echo 7; fi", ["7"]));
 Deno.test("condition arithmetic expression", () =>
-  assertStdout("if [ 5 = 5 ]; then echo $((5+5)) fi", ["10"]));
+  assertStdout("if [ 5 = 5 ]; then echo $((5+5)); fi", ["10"]));
 
 Deno.test("variable assignment", () => assertStdout("a=5; echo $a", ["5"]));
 Deno.test("multiple variable assignment", () => {
@@ -72,6 +72,13 @@ Deno.test("parameter expansion", () => {
     "hello world",
   ]);
   assertStdout('echo "\\$a"', ["$a"]);
+  assertStdout('a=x; echo "$a"$a', ["xx"]);
+  assertStdout('PWD=/home/alice; echo "$PWD":/foo/bar', [
+    "/home/alice:/foo/bar",
+  ]);
+  assertStdout('PWD=/home/alice; echo "$PWD:/foo/bar"', [
+    "/home/alice:/foo/bar",
+  ]);
   assertStdout('a=foo; echo "\\$$a"', ["$foo"]);
   assertStdout('a=a;b="$a$a"; echo "$b"', ["aa"]);
   assertStdout('a=a;b="$a$a$a"; echo "$b"', ["aaa"]);
@@ -90,17 +97,28 @@ Deno.test("undefined variable", () => assertStdout("echo $a", [""]));
 Deno.test("string expansion undefined variable", () =>
   assertStdout('echo "$a"', [""]));
 Deno.test("useless expression", () => assertStdout("$((0+0))", []));
+Deno.test("echo keyword", () => assertStdout("echo if", ["if"]));
+Deno.test("echo with spaces", () => {
+  assertStdout("echo if       else", ["if else"]);
+  assertStdout('echo "if   else"', ["if   else"]);
+});
 
 function assertStdout(program: string, expectedOutputs: string[]) {
   const parser = new Parser(new Lexer(program));
-  const evaluator = new Evaluator();
-  const outputs = evaluator.run(parser.parse());
+  const outputs: string[] = [];
+  const stdout: Stdout = {
+    print(msg: string) {
+      outputs.push(msg);
+    },
+  };
+  const evaluator = new Evaluator(stdout);
+  evaluator.run(parser.parse());
   assertEquals(
     outputs,
     expectedOutputs,
     `
 Program: '${program}'
-Expected: '${expectedOutputs[0]}'
-Actual: '${outputs[0]}'`,
+Expected: '[${expectedOutputs.join(", ")}]'
+Actual: '[${outputs.join(", ")}]'`,
   );
 }

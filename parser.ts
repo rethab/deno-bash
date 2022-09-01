@@ -55,6 +55,7 @@ enum Precedence {
   Product, // *
   Prefix, // -x or !x
   Call, // function(x)
+  Highest,
 }
 
 export enum Operator {
@@ -85,9 +86,9 @@ export class ExpressionStatement implements Statement, Expression {
   }
 }
 
-export class FunctionApplication implements Statement, Expression {
+export class FunctionApplication implements Expression {
   constructor(
-    public readonly identifier: Identifier,
+    public readonly name: StringConstant,
     public readonly parameters: Expression[],
   ) {
   }
@@ -121,17 +122,18 @@ export class Parser {
 
     if (type === "NUMBER") return (t: Token) => this.parseNumber(t);
     if (type === "STRING") return (t: Token) => this.parseString(t);
+    if (type === "KEYWORD") return (t: Token) => this.parseString(t);
     if (type === "IDENTIFIER") return (t: Token) => this.parseIdentifier(t);
 
-    if (type === "OP" && value === "(") {
+    if (value === "(") {
       return () => this.parseGroupedExpression();
     }
 
-    if (type === "OP" && value === "$((") {
+    if (value === "$((") {
       return () => this.parseArithmeticExpression();
     }
 
-    if (type === "KEYWORD" && value === "if") {
+    if (value === "if") {
       return () => this.parseConditionStatement();
     }
 
@@ -146,7 +148,7 @@ export class Parser {
       }
     }
 
-    throw new Error(`Unhandled expression '${token.value} (${token.type})`);
+    return this.parseFunctionApplication.bind(this);
   }
 
   private advanceToken() {
@@ -163,14 +165,6 @@ export class Parser {
       return this.parseConditionStatement();
     }
 
-    if (this.curToken?.type === "IDENTIFIER") {
-      if (this.isFunctionApplication()) {
-        return this.parseFunctionApplication(this.curToken);
-      }
-
-      return new ExpressionStatement(this.parseIdentifier(this.curToken));
-    }
-
     return new ExpressionStatement(this.parseExpression(Precedence.Lowest));
   }
 
@@ -182,14 +176,14 @@ export class Parser {
     this.consumeToken({ type: "KEYWORD", value: ";" });
     this.consumeToken({ type: "KEYWORD", value: "then" });
     const consequence = this.parseStatement();
-    this.skipSemicolon();
+    this.consumeToken({ type: "KEYWORD", value: ";" });
 
-    if (this.isKeyword("fi")) {
+    if (this.curToken?.value === "fi") {
       this.consumeToken({ type: "KEYWORD", value: "fi" });
       return new Condition(expression, consequence);
     }
 
-    if (this.isKeyword("else")) {
+    if (this.curToken?.value === "else") {
       this.consumeToken({ type: "KEYWORD", value: "else" });
       const other = this.parseStatement();
       this.skipSemicolon();
@@ -285,38 +279,44 @@ export class Parser {
   }
 
   private parseGroupedExpression(): Expression {
-    this.consumeToken({ type: "OP", value: "(" });
+    this.consumeToken({ value: "(" });
     const expression = this.parseExpression(Precedence.Lowest);
-    this.consumeToken({ type: "OP", value: ")" });
+    this.consumeToken({ value: ")" });
     return expression;
   }
 
   private parseArithmeticExpression() {
-    this.consumeToken({ type: "OP", value: "$((" });
+    this.consumeToken({ value: "$((" });
 
     const expression = this.parseExpression(Precedence.Lowest);
 
-    this.consumeToken({ type: "OP", value: ")" });
-    this.consumeToken({ type: "OP", value: ")" });
+    this.consumeToken({ value: ")" });
+    this.consumeToken({ value: ")" });
 
     return new ArithmeticExpression(expression);
   }
 
-  private parseFunctionApplication(curToken: Token) {
-    const name = this.parseIdentifier(curToken);
+  private parseFunctionApplication(name: Expression) {
+    if (!(name instanceof StringConstant)) {
+      throw new Error(
+        `Expected StringConstant for function application, but got ${name.constructor.name}`,
+      );
+    }
+
     const parameters = [];
-    while (this.curToken && !this.isSemicolon() && !this.isKeyword()) {
-      const parameter = this.parseExpression(Precedence.Lowest);
+    while (this.curToken && !this.isSemicolon()) {
+      // using the highest means all expressions are parsed individually without trying to "combine" them
+      const parameter = this.parseExpression(Precedence.Highest);
       parameters.push(parameter);
     }
 
     return new FunctionApplication(name, parameters);
   }
 
-  private consumeToken(expected: Token) {
+  private consumeToken(expected: Partial<Token>) {
     if (
-      this.curToken?.type !== expected.type ||
-      this.curToken?.value !== expected.value
+      (expected.type && this.curToken?.type !== expected.type) ||
+      (expected.value && this.curToken?.value !== expected.value)
     ) {
       throw new Error(
         `Expected token '${expected.value}' (${expected.type}) but got '${this.curToken?.value}' (${this.curToken?.type})`,
@@ -330,50 +330,36 @@ export class Parser {
     return this.curToken?.type === "KEYWORD" && this.curToken.value === ";";
   }
 
-  private nextIsSemicolon(): boolean {
-    return this.nextToken?.type === "KEYWORD" && this.nextToken.value === ";";
-  }
-
   private skipSemicolon() {
     if (this.isSemicolon()) {
       this.advanceToken();
     }
   }
 
-  private isKeyword(value?: string): boolean {
-    return this.curToken?.type === "KEYWORD" &&
-      (!value || this.curToken.value === value);
-  }
-
-  private isOperator(value: string): boolean {
-    return this.curToken?.type === "OP" && this.curToken.value === value;
-  }
-
-  private isClosingArithmeticExpansion(): boolean {
-    return this.isOperator(")") && this.nextToken?.type === "OP" &&
-      this.nextToken.value === ")";
-  }
-
-  private isFunctionApplication() {
-    return this.nextToken?.type === "IDENTIFIER" ||
-      this.nextToken?.type === "STRING" ||
-      this.nextToken?.type === "NUMBER" ||
-      this.nextToken?.type === "OP";
-  }
-
   private precedence(token: Token): Precedence {
     const { type, value } = token;
 
-    if (type === "OP" && value === "=") {
-      return Precedence.Equals;
+    if (type === "OP") {
+      if (value === "=") {
+        return Precedence.Equals;
+      }
+
+      if (value === "+") {
+        return Precedence.Sum;
+      }
+
+      if (value === "*") {
+        return Precedence.Product;
+      }
+
+      return Precedence.Lowest;
     }
 
-    if (type === "OP" && value === "+") {
-      return Precedence.Sum;
-    }
-
-    if (type === "OP" && value === "*") {
-      return Precedence.Product;
+    if (
+      type === "STRING" || type === "ARITHMETIC_OPEN" || type === "NUMBER" ||
+      type === "KEYWORD"
+    ) {
+      return Precedence.Call;
     }
 
     return Precedence.Lowest;

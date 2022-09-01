@@ -12,46 +12,46 @@ Deno.test("braces", () => {
 
 Deno.test("declare variables", () => {
   assertTokens("A=a", [
-    { type: "IDENTIFIER", value: "A" },
+    { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "a" },
+    { type: "STRING", value: "a" },
   ]);
   assertTokens("a=5", [
-    { type: "IDENTIFIER", value: "a" },
+    { type: "STRING", value: "a" },
     { type: "OP", value: "=" },
     { type: "NUMBER", value: "5" },
   ]);
   assertTokens("ABC=abc", [
-    { type: "IDENTIFIER", value: "ABC" },
+    { type: "STRING", value: "ABC" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "abc" },
+    { type: "STRING", value: "abc" },
   ]);
   assertTokens("A=A", [
-    { type: "IDENTIFIER", value: "A" },
+    { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "A" },
+    { type: "STRING", value: "A" },
   ]);
   assertTokens("A1=B2", [
-    { type: "IDENTIFIER", value: "A1" },
+    { type: "STRING", value: "A1" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "B2" },
+    { type: "STRING", value: "B2" },
   ]);
   assertTokens("aBc1_z=X", [
-    { type: "IDENTIFIER", value: "aBc1_z" },
+    { type: "STRING", value: "aBc1_z" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "X" },
+    { type: "STRING", value: "X" },
   ]);
 });
 
 Deno.test("arithmetic expansion", () => {
   assertTokens("$((5))", [
-    { type: "OP", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
     { type: "NUMBER", value: "5" },
     { type: "OP", value: ")" },
     { type: "OP", value: ")" },
   ]);
   assertTokens("$((5 + 4))", [
-    { type: "OP", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
     { type: "NUMBER", value: "5" },
     { type: "OP", value: "+" },
     { type: "NUMBER", value: "4" },
@@ -59,7 +59,7 @@ Deno.test("arithmetic expansion", () => {
     { type: "OP", value: ")" },
   ]);
   assertTokens("$((5 * 4))", [
-    { type: "OP", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
     { type: "NUMBER", value: "5" },
     { type: "OP", value: "*" },
     { type: "NUMBER", value: "4" },
@@ -67,10 +67,25 @@ Deno.test("arithmetic expansion", () => {
     { type: "OP", value: ")" },
   ]);
   assertTokens("$((0 + 4))", [
-    { type: "OP", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
     { type: "NUMBER", value: "0" },
     { type: "OP", value: "+" },
     { type: "NUMBER", value: "4" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+  ]);
+  assertTokens("$(($((0))))", [
+    { type: "ARITHMETIC_OPEN", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
+    { type: "NUMBER", value: "0" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+    { type: "OP", value: ")" },
+  ]);
+  assertTokens("$((a))", [
+    { type: "ARITHMETIC_OPEN", value: "$((" },
+    { type: "IDENTIFIER", value: "a" },
     { type: "OP", value: ")" },
     { type: "OP", value: ")" },
   ]);
@@ -78,7 +93,7 @@ Deno.test("arithmetic expansion", () => {
 
 Deno.test("braces", () => {
   assertTokens("$(((5)))", [
-    { type: "OP", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
     { type: "OP", value: "(" },
     { type: "NUMBER", value: "5" },
     { type: "OP", value: ")" },
@@ -86,7 +101,7 @@ Deno.test("braces", () => {
     { type: "OP", value: ")" },
   ]);
   assertTokens("$((((5))))", [
-    { type: "OP", value: "$((" },
+    { type: "ARITHMETIC_OPEN", value: "$((" },
     { type: "OP", value: "(" },
     { type: "OP", value: "(" },
     { type: "NUMBER", value: "5" },
@@ -105,25 +120,35 @@ Deno.test("strings", () => {
     { type: "STRING", value: " " },
   ]);
   assertTokens('A=""', [
-    { type: "IDENTIFIER", value: "A" },
+    { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
     { type: "STRING", value: "" },
   ]);
   assertTokens('A="a"', [
-    { type: "IDENTIFIER", value: "A" },
+    { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
     { type: "STRING", value: "a" },
   ]);
   assertTokens('A="abc"', [
-    { type: "IDENTIFIER", value: "A" },
+    { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
     { type: "STRING", value: "abc" },
+  ]);
+  assertTokens('A="abc""bcd"', [
+    { type: "STRING", value: "A" },
+    { type: "OP", value: "=" },
+    { type: "STRING", value: "abcbcd" },
+  ]);
+  assertTokens('A="abc""bcd""efg"', [
+    { type: "STRING", value: "A" },
+    { type: "OP", value: "=" },
+    { type: "STRING", value: "abcbcdefg" },
   ]);
 });
 
 Deno.test("use variables", () => {
-  assertTokens("$A", [{ type: "IDENTIFIER", value: "$A" }]);
-  assertTokens("$ABC", [{ type: "IDENTIFIER", value: "$ABC" }]);
+  assertTokens("$A", [{ type: "STRING", value: "$A" }]);
+  assertTokens("$ABC", [{ type: "STRING", value: "$ABC" }]);
 });
 
 Deno.test("simple condition", () => {
@@ -131,7 +156,7 @@ Deno.test("simple condition", () => {
     { type: "OP", value: "[" },
     { type: "STRING", value: "a" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "$b" },
+    { type: "STRING", value: "$b" },
     { type: "OP", value: "]" },
   ]);
 });
@@ -142,27 +167,45 @@ Deno.test("if condition", () => {
     { type: "OP", value: "[" },
     { type: "STRING", value: "a" },
     { type: "OP", value: "=" },
-    { type: "IDENTIFIER", value: "$b" },
+    { type: "STRING", value: "$b" },
     { type: "OP", value: "]" },
     { type: "KEYWORD", value: ";" },
     { type: "KEYWORD", value: "then" },
-    { type: "IDENTIFIER", value: "$a" },
+    { type: "STRING", value: "$a" },
     { type: "KEYWORD", value: "else" },
-    { type: "IDENTIFIER", value: "$b" },
+    { type: "STRING", value: "$b" },
     { type: "KEYWORD", value: "fi" },
   ]);
 });
 
 Deno.test("function application", () => {
   assertTokens("echo $a", [
-    { type: "IDENTIFIER", value: "echo" },
-    { type: "IDENTIFIER", value: "$a" },
+    { type: "STRING", value: "echo" },
+    { type: "STRING", value: "$a" },
   ]);
 
   assertTokens("echo 5", [
-    { type: "IDENTIFIER", value: "echo" },
+    { type: "STRING", value: "echo" },
     { type: "NUMBER", value: "5" },
   ]);
+});
+
+Deno.test("command invocation", () => {
+  assertTokens(
+    'docker run -v "$PWD":/mnt -w /mnt mvdan/shfmt "${ARGS[@]}" -- *.sh',
+    [
+      { type: "STRING", value: "docker" },
+      { type: "STRING", value: "run" },
+      { type: "STRING", value: "-v" },
+      { type: "STRING", value: "$PWD:/mnt" },
+      { type: "STRING", value: "-w" },
+      { type: "STRING", value: "/mnt" },
+      { type: "STRING", value: "mvdan/shfmt" },
+      { type: "STRING", value: "${ARGS[@]}" },
+      { type: "STRING", value: "--" },
+      { type: "STRING", value: "*.sh" },
+    ],
+  );
 });
 
 function assertTokens(
