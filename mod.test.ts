@@ -10,6 +10,9 @@ Deno.test("arithmetic", () => runProgram("echo $((5 + 5 * 3))", "20\n"));
 
 Deno.test("program name", () => runProgram("echo $0", /.+\.sh\n/));
 
+Deno.test("arguments", () =>
+  runProgram("echo $1 $2", "foo bar\n", ["foo", "bar"]));
+
 Deno.test("if condition", () =>
   runProgram(
     `
@@ -36,11 +39,12 @@ echo "# test"
 async function runProgram(
   program: string,
   expectedOutput: string | RegExp,
+  args: string[] = [],
 ): Promise<void> {
   const filename = Deno.makeTempFileSync({ suffix: ".sh" });
   Deno.writeTextFileSync(filename, program);
   const process = Deno.run({
-    cmd: ["deno", "run", "--allow-read", "mod.ts", filename],
+    cmd: ["deno", "run", "--allow-read", "mod.ts", filename, ...args],
     stdout: "piped",
   });
   const binaryOut = await process.output();

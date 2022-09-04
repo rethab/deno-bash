@@ -11,6 +11,10 @@ const program = parser.parse();
 const predefinedVariables: Map<string, Value> = new Map();
 predefinedVariables.set("0", new StringValue(filename));
 
+for (let i = 1; i < Deno.args.length; i++) {
+  predefinedVariables.set(`${i}`, new StringValue(Deno.args[i]));
+}
+
 const evaluator = new Evaluator(
   predefinedVariables,
   {

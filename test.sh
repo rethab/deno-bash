@@ -1,1 +1,2 @@
-echo $0
+echo "Name: $0"
+echo "Argument: $1"
