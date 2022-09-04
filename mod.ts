@@ -1,3 +1,4 @@
+import {defaultBuiltins} from './src/builtins.ts';
 import { Evaluator, StringValue, Value } from "./src/evaluator.ts";
 import { Lexer } from "./src/lexer.ts";
 import { Parser } from "./src/parser.ts";
@@ -15,11 +16,6 @@ for (let i = 1; i < Deno.args.length; i++) {
   predefinedVariables.set(`${i}`, new StringValue(Deno.args[i]));
 }
 
-const evaluator = new Evaluator(
-  predefinedVariables,
-  {
-    print: (msg: string) => console.log(msg),
-  },
-);
+const evaluator = new Evaluator(predefinedVariables, defaultBuiltins);
 
 evaluator.run(program);

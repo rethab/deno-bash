@@ -51,7 +51,10 @@ export class NumberConstant implements Expression {
 }
 
 export class StringConstant implements Expression {
-  constructor(public readonly s: string) {}
+  constructor(
+    public readonly s: string,
+    public readonly singlequote: boolean = false,
+  ) {}
   toString(): string {
     return `"${this.s}"`;
   }
@@ -289,7 +292,9 @@ export class Parser {
   }
 
   private parseString(curToken: Token): StringConstant {
-    const string = new StringConstant(curToken.value);
+    const { text, value } = curToken;
+    const singlequote = text[0] === "'";
+    const string = new StringConstant(value, singlequote);
     this.advanceToken();
     return string;
   }

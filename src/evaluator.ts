@@ -1,8 +1,8 @@
+import { Builtins } from "./builtins.ts";
 import {
   ArithmeticExpression,
   Assignment,
   Condition,
-  DashedOperator,
   Expression,
   ExpressionStatement,
   FunctionApplication,
@@ -89,14 +89,10 @@ export class StringValue implements Value {
   }
 }
 
-export interface Stdout {
-  print(msg: string): void;
-}
-
 export class Evaluator {
   constructor(
     private variables: Map<string, Value>,
-    private stdout: Stdout,
+    private builtins: Builtins,
   ) {}
 
   run(p: Program) {
@@ -166,7 +162,7 @@ export class Evaluator {
     );
 
     if (name === "echo") {
-      this.stdout.print(parameters.map((obj) => obj.show()).join(" "));
+      this.builtins.echo(parameters.map((p) => p.show()));
       return new Void();
     }
 
@@ -290,7 +286,7 @@ export class Evaluator {
 
       if (char === "\\") {
         output += exp.s[++i];
-      } else if (char === "$") {
+      } else if (char === "$" && !exp.singlequote) {
         const [substitution, newI] = this.substituteVariable(exp.s, i);
 
         // substituted everything --> retain type

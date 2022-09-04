@@ -13,6 +13,7 @@ export type TokenType =
 export interface Token {
   type: TokenType;
   value: string;
+  text: string;
 }
 
 export class Lexer {
@@ -32,6 +33,7 @@ export class Lexer {
         NUMBER: /[0-9]+/,
         STRING: [
           { match: /"(?:[^"]*)"/, value: (s: string) => s.slice(1, -1) },
+          { match: /'(?:[^']*)'/, value: (s: string) => s.slice(1, -1) },
           { match: /[A-Za-z0-9_:$/.*-]+/ },
         ],
       },
@@ -62,6 +64,7 @@ export class Lexer {
         NUMBER: /[0-9]+/,
         STRING: [
           { match: /"(?:[^"]*)"/, value: (s: string) => s.slice(1, -1) },
+          { match: /'(?:[^']*)'/, value: (s: string) => s.slice(1, -1) },
           { match: /[A-Za-z0-9_:$/.*-]+/ },
         ],
         WS: / /,
@@ -87,6 +90,7 @@ export class Lexer {
     while (token?.type === "STRING" && this.peek()?.type === "STRING") {
       const next = this.pop()!!;
       token.value += next.value;
+      token.text += next.text;
     }
 
     if (!token) return;
@@ -94,6 +98,7 @@ export class Lexer {
     return {
       type: token.type as TokenType,
       value: token.value,
+      text: token.text,
     };
   }
 

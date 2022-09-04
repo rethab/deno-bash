@@ -136,35 +136,58 @@ Deno.test("braces", () => {
 
 Deno.test("strings", () => {
   assertTokens('""', [
-    { type: "STRING", value: "" },
+    { type: "STRING", value: "", text: '""' },
   ]);
   assertTokens('" "', [
-    { type: "STRING", value: " " },
+    { type: "STRING", value: " ", text: '" "' },
   ]);
   assertTokens('A=""', [
-    { type: "STRING", value: "A" },
+    { type: "STRING", value: "A", text: "A" },
     { type: "OP", value: "=" },
-    { type: "STRING", value: "" },
+    { type: "STRING", value: "", text: '""' },
   ]);
   assertTokens('A="a"', [
     { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
-    { type: "STRING", value: "a" },
+    { type: "STRING", value: "a", text: '"a"' },
   ]);
   assertTokens('A="abc"', [
     { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
-    { type: "STRING", value: "abc" },
+    { type: "STRING", value: "abc", text: '"abc"' },
   ]);
   assertTokens('A="abc""bcd"', [
     { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
-    { type: "STRING", value: "abcbcd" },
+    { type: "STRING", value: "abcbcd", text: '"abc""bcd"' },
   ]);
   assertTokens('A="abc""bcd""efg"', [
     { type: "STRING", value: "A" },
     { type: "OP", value: "=" },
-    { type: "STRING", value: "abcbcdefg" },
+    { type: "STRING", value: "abcbcdefg", text: '"abc""bcd""efg"' },
+  ]);
+});
+
+Deno.test("single quotes", () => {
+  assertTokens(`'"'`, [{ type: "STRING", value: '"', text: `'"'` }]);
+  assertTokens(`'"foo'`, [{ type: "STRING", value: '"foo', text: `'"foo'` }]);
+  assertTokens(`'"fo"'`, [{ type: "STRING", value: '"fo"', text: `'"fo"'` }]);
+  assertTokens(`'"fo"of'`, [{
+    type: "STRING",
+    value: '"fo"of',
+    text: `'"fo"of'`,
+  }]);
+  assertTokens(`'"fo"of"'`, [{
+    type: "STRING",
+    value: '"fo"of"',
+    text: `'"fo"of"'`,
+  }]);
+  assertTokens(`[ 'f"o' != 'of' ]`, [
+    { type: "CONDITIONAL_OPEN", value: "[" },
+    { type: "STRING", value: 'f"o', text: `'f"o'` },
+    { type: "OP", value: "!=" },
+    { type: "STRING", value: "of", text: `'of'` },
+    { type: "OP", value: "]" },
   ]);
 });
 
@@ -212,7 +235,7 @@ Deno.test("function application", () => {
   ]);
 });
 
-Deno.test("command invocation", () => {
+Deno.test("command invocation: docker", () => {
   assertTokens(
     'docker run -v "$PWD":/mnt -w /mnt mvdan/shfmt "${ARGS[@]}" -- *.sh',
     [
@@ -228,6 +251,13 @@ Deno.test("command invocation", () => {
       { type: "STRING", value: "*.sh" },
     ],
   );
+});
+
+Deno.test("command invocation: awk", () => {
+  assertTokens(`awk 'BEGIN{print "foo"}'`, [
+    { type: "STRING", value: "awk" },
+    { type: "STRING", value: 'BEGIN{print "foo"}' },
+  ]);
 });
 
 Deno.test("if condition multiple lines", () => {
@@ -307,7 +337,7 @@ Deno.test("conditional expression", () => {
 
 function assertTokens(
   input: string,
-  tokens: Token[],
+  tokens: Partial<Token>[],
 ) {
   const lexer = new Lexer(input);
   for (const token of tokens) {
@@ -318,7 +348,7 @@ function assertTokens(
   assert(!next, `more chars: '${JSON.stringify(next)}'`);
 }
 
-function assertToken(expected: Token, actual?: Token) {
+function assertToken(expected: Partial<Token>, actual?: Token) {
   if (!actual) {
     throw new AssertionError(
       `Expected '${expected.value}' (${expected.type}), but stream is empty..`,
@@ -332,6 +362,11 @@ function assertToken(expected: Token, actual?: Token) {
   if (expected.value !== actual.value) {
     throw new AssertionError(
       `Expected value '${expected.value}' but got '${actual.value}'`,
+    );
+  }
+  if (expected.text && expected.text !== actual.text) {
+    throw new AssertionError(
+      `Expected text '${expected.text}' but got '${actual.text}'`,
     );
   }
 }

@@ -1,5 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.153.0/testing/asserts.ts";
-import { Evaluator, Stdout } from "./evaluator.ts";
+import { Builtins } from "./builtins.ts";
+import { Evaluator } from "./evaluator.ts";
 import { Lexer } from "./lexer.ts";
 import { Parser } from "./parser.ts";
 
@@ -58,6 +59,7 @@ Deno.test("undefined variable in arithmetic expression", () => {
 
 Deno.test("string without quotes", () => assertStdout("echo hello", ["hello"]));
 Deno.test("string with", () => assertStdout('echo "hello"', ["hello"]));
+Deno.test("single quotes", () => assertStdout(`echo '"hello"'`, ['"hello"']));
 
 Deno.test("parameter expansion", () => {
   assertStdout('a=foo; echo "$a"', ["foo"]);
@@ -87,12 +89,18 @@ Deno.test("parameter expansion", () => {
   assertStdout('a=a;b="$a $a"; echo "$b"', ["a a"]);
 });
 
-Deno.test("parameter expansion curly braces", () => {
+Deno.test("parameter expansion: curly braces", () => {
   assertStdout('foo=bar; echo "${foo}"', ["bar"]);
   assertStdout('foo=bar; echo "${foo}bar"', ["barbar"]);
   assertStdout('foo=bar; echo "bar${foo}"', ["barbar"]);
   assertStdout('foo=bar; echo "bar${foo}bar"', ["barbarbar"]);
   assertStdout('foo=bar; echo "bar{foo}bar"', ["bar{foo}bar"]);
+});
+
+Deno.test("parameter expansion: not in single quotes", () => {
+  assertStdout(`foo=bar; echo '\${foo}'`, ["${foo}"]);
+  assertStdout(`foo=bar; echo '$foo'`, ["$foo"]);
+  assertStdout(`echo 'hello $1 foo $bar'`, ["hello $1 foo $bar"]);
 });
 
 Deno.test("conditional expressions: -z", () => {
@@ -191,12 +199,13 @@ Deno.test("comment", () =>
 function assertStdout(program: string, expectedOutputs: string[]) {
   const parser = new Parser(new Lexer(program));
   const outputs: string[] = [];
-  const stdout: Stdout = {
-    print(msg: string) {
-      outputs.push(msg);
+  const builtins: Builtins = {
+    echo(args: string[]): number {
+      outputs.push(args.join(" "));
+      return 0;
     },
   };
-  const evaluator = new Evaluator(new Map(), stdout);
+  const evaluator = new Evaluator(new Map(), builtins);
   evaluator.run(parser.parse());
   assertEquals(
     outputs,
