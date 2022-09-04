@@ -10,10 +10,20 @@ export class InfixExpression implements Expression {
   constructor(
     public readonly lhs: Expression,
     public readonly rhs: Expression,
-    public readonly op: Operator,
+    public readonly op: string,
   ) {}
   toString(): string {
     return `${this.lhs} ${this.op} ${this.rhs}`;
+  }
+}
+
+export class PrefixExpression implements Expression {
+  constructor(
+    public readonly op: string,
+    public readonly exp: Expression,
+  ) {}
+  toString(): string {
+    return `${this.op} ${this.exp}`;
   }
 }
 
@@ -58,10 +68,8 @@ enum Precedence {
   Highest,
 }
 
-export enum Operator {
-  Equal = "=",
-  Plus = "+",
-  Asterisk = "*",
+export class DashedOperator implements Expression {
+  constructor(public readonly op: string) {}
 }
 
 export interface Statement {}
@@ -127,6 +135,10 @@ export class Parser {
     if (type === "KEYWORD") return (t: Token) => this.parseString(t);
     if (type === "IDENTIFIER") return (t: Token) => this.parseIdentifier(t);
 
+    if (type === "OP" && value.startsWith("-")) {
+      return () => this.parsePrefixExpression();
+    }
+
     if (value === "(") {
       return () => this.parseGroupedExpression();
     }
@@ -139,13 +151,16 @@ export class Parser {
       return () => this.parseConditionStatement();
     }
 
-    throw new Error(`Unhandled expression '${token.value} (${token.type})`);
+    throw new Error(`Unhandled expression '${token.value}' (${token.type})`);
   }
 
   private infixParseFunction(token: Token): InfixParseFunction {
     const { type, value } = token;
     if (type === "OP") {
-      if (value === "+" || value === "*" || value === "=") {
+      if (
+        value === "+" || value === "*" || value === "=" || value === "!=" ||
+        value.startsWith("-")
+      ) {
         return this.parseInfixExpression.bind(this);
       }
     }
@@ -172,7 +187,7 @@ export class Parser {
 
   private parseConditionStatement(): Condition {
     this.consumeToken({ type: "KEYWORD", value: "if" });
-    this.consumeToken({ type: "OP", value: "[" });
+    this.consumeToken({ type: "CONDITIONAL_OPEN", value: "[" });
     const expression = this.parseExpression(Precedence.Lowest);
     this.consumeToken({ type: "OP", value: "]" });
     this.consumeToken({ type: "KEYWORD", value: ";" });
@@ -241,20 +256,24 @@ export class Parser {
     return leftExpression;
   }
 
-  private parseOperator(): Operator {
-    switch (this.curToken?.value) {
-      case "=":
-        this.advanceToken();
-        return Operator.Equal;
-      case "+":
-        this.advanceToken();
-        return Operator.Plus;
-      case "*":
-        this.advanceToken();
-        return Operator.Asterisk;
+  private parseOperator(): string {
+    if (!this.curToken) {
+      throw new Error(`No token when parsing operator`);
     }
 
-    throw new Error(`Unsupported Operator ${this.curToken?.value}`);
+    const { value } = this.curToken;
+
+    if (["=", "!=", "+", "*"].indexOf(value) !== -1) {
+      this.advanceToken();
+      return value;
+    }
+
+    if (value.match(/-[a-zA-Z]{1,2}/)) {
+      this.advanceToken();
+      return value;
+    }
+
+    throw new Error(`Unsupported Operator ${value}`);
   }
 
   private parseIdentifier(curToken: Token): Identifier {
@@ -356,7 +375,7 @@ export class Parser {
     const { type, value } = token;
 
     if (type === "OP") {
-      if (value === "=") {
+      if (value === "=" || value === "!=") {
         return Precedence.Equals;
       }
 
@@ -366,6 +385,10 @@ export class Parser {
 
       if (value === "*") {
         return Precedence.Product;
+      }
+
+      if (value.startsWith("-")) {
+        return Precedence.Product; // arbitrary, cant be combined anyway
       }
 
       return Precedence.Lowest;
@@ -379,5 +402,12 @@ export class Parser {
     }
 
     return Precedence.Lowest;
+  }
+
+  private parsePrefixExpression(): Expression {
+    const operator = this.parseOperator();
+    const exp = this.parseExpression(Precedence.Prefix);
+
+    return new PrefixExpression(operator, exp);
   }
 }

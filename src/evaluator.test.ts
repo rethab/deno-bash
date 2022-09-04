@@ -18,15 +18,15 @@ Deno.test("arithmetic expression precedence", () => {
 });
 
 Deno.test("condition if-only", () =>
-  assertStdout("if [ 5 = 5 ]; then echo 6; fi", ["6"]));
+  assertStdout("if [ 5 -eq 5 ]; then echo 6; fi", ["6"]));
 Deno.test("condition if-else", () =>
-  assertStdout("if [ 5 = 5 ]; then echo 6; else echo 7; fi", ["6"]));
+  assertStdout("if [ 5 -eq 5 ]; then echo 6; else echo 7; fi", ["6"]));
 Deno.test("condition if-else true", () =>
-  assertStdout("if [ 7 = 5 ]; then echo 6; else echo 7; fi", ["7"]));
+  assertStdout("if [ 7 -eq 5 ]; then echo 6; else echo 7; fi", ["7"]));
 Deno.test("condition arithmetic expression", () =>
-  assertStdout("if [ 5 = 5 ]; then echo $((5+5)); fi", ["10"]));
+  assertStdout("if [ 5 -eq 5 ]; then echo $((5+5)); fi", ["10"]));
 Deno.test("condition with variable", () =>
-  assertStdout("a=5; if [ 5 = $a ]; then echo yes; fi", ["yes"]));
+  assertStdout("a=5; if [ 5 -eq $a ]; then echo yes; fi", ["yes"]));
 
 Deno.test("variable assignment", () => assertStdout("a=5; echo $a", ["5"]));
 Deno.test("multiple variable assignment", () => {
@@ -93,6 +93,80 @@ Deno.test("parameter expansion curly braces", () => {
   assertStdout('foo=bar; echo "bar${foo}"', ["barbar"]);
   assertStdout('foo=bar; echo "bar${foo}bar"', ["barbarbar"]);
   assertStdout('foo=bar; echo "bar{foo}bar"', ["bar{foo}bar"]);
+});
+
+Deno.test("conditional expressions: -z", () => {
+  assertStdout('foo=bar; if [ -z $foo ]; then echo "empty"; fi', []);
+  assertStdout('foo=bar; if [ -z "$foo" ]; then echo "empty"; fi', []);
+  assertStdout('if [ -z $foo ]; then echo "empty"; fi', ["empty"]);
+  assertStdout('if [ -z "$foo" ]; then echo "empty"; fi', ["empty"]);
+});
+
+Deno.test("conditional expressions: -n", () => {
+  assertStdout('foo=bar; if [ -n $foo ]; then echo "nonempty"; fi', [
+    "nonempty",
+  ]);
+  assertStdout('foo=bar; if [ -n "$foo" ]; then echo "nonempty"; fi', [
+    "nonempty",
+  ]);
+  assertStdout('if [ -n $foo ]; then echo "nonempty"; fi', []);
+  assertStdout('if [ -n "$foo" ]; then echo "nonempty"; fi', []);
+});
+
+Deno.test("conditional expressions: =", () => {
+  assertStdout('foo=bar; if [ $foo = "bar" ]; then echo "equal"; fi', [
+    "equal",
+  ]);
+  assertStdout('foo=barrrr; if [ $foo = "bar" ]; then echo "equal"; fi', []);
+  assertStdout(' if [ $foo = "bar" ]; then echo "equal"; fi', []);
+});
+
+Deno.test("conditional expressions: =", () => {
+  assertStdout('foo=bar; if [ $foo != "bar" ]; then echo "equal"; fi', []);
+  assertStdout('foo=barrrr; if [ $foo != "bar" ]; then echo "notequal"; fi', [
+    "notequal",
+  ]);
+  assertStdout('if [ $foo != "bar" ]; then echo "notequal"; fi', ["notequal"]);
+});
+
+Deno.test("conditional expressions: -eq", () => {
+  assertStdout('if [ 3 -eq 3 ]; then echo "equal"; fi', ["equal"]);
+  assertStdout('if [ 3 -eq 4 ]; then echo "equal"; fi', []);
+});
+
+Deno.test("conditional expressions: -ne", () => {
+  assertStdout('if [ 3 -ne 3 ]; then echo "not equal"; fi', []);
+  assertStdout('if [ 3 -ne 4 ]; then echo "not equal"; fi', ["not equal"]);
+});
+
+Deno.test("conditional expressions: -lt", () => {
+  assertStdout('if [ 3 -lt 3 ]; then echo "lt"; fi', []);
+  assertStdout('if [ 3 -lt 4 ]; then echo "lt"; fi', ["lt"]);
+  assertStdout('if [ 4 -lt 3 ]; then echo "lt"; fi', []);
+});
+
+Deno.test("conditional expressions: -le", () => {
+  assertStdout('if [ 3 -le 3 ]; then echo "le"; fi', ["le"]);
+  assertStdout('if [ 3 -le 4 ]; then echo "le"; fi', ["le"]);
+  assertStdout('if [ 4 -le 3 ]; then echo "le"; fi', []);
+});
+
+Deno.test("conditional expressions: -gt", () => {
+  assertStdout('if [ 3 -gt 3 ]; then echo "gt"; fi', []);
+  assertStdout('if [ 3 -gt 4 ]; then echo "gt"; fi', []);
+  assertStdout('if [ 4 -gt 3 ]; then echo "gt"; fi', ["gt"]);
+});
+
+Deno.test("conditional expressions: -ge", () => {
+  assertStdout('if [ 3 -ge 3 ]; then echo "ge"; fi', ["ge"]);
+  assertStdout('if [ 3 -ge 4 ]; then echo "ge"; fi', []);
+  assertStdout('if [ 4 -ge 3 ]; then echo "ge"; fi', ["ge"]);
+});
+
+Deno.test("conditional expression: stringy numbers", () => {
+  assertStdout('a=3; if [ 3 -eq $a ]; then echo "eq"; fi', ["eq"]);
+  assertStdout('if [ 3 -eq "3" ]; then echo "eq"; fi', ["eq"]);
+  assertStdout('a="3"; if [ 3 -eq $a ]; then echo "eq"; fi', ["eq"]);
 });
 
 Deno.test("undefined variable", () => assertStdout("echo $a", [""]));

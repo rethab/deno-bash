@@ -2,13 +2,14 @@ import {
   ArithmeticExpression,
   Assignment,
   Condition,
+  DashedOperator,
   Expression,
   ExpressionStatement,
   FunctionApplication,
   Identifier,
   InfixExpression,
   NumberConstant,
-  Operator,
+  PrefixExpression,
   Program,
   Statement,
   StringConstant,
@@ -16,11 +17,15 @@ import {
 
 export interface Value {
   show(): string;
+  equals(other: Value): boolean;
 }
 
 class Void implements Value {
   show(): string {
     return "void";
+  }
+  equals(other: Value): boolean {
+    return other instanceof Void;
   }
 }
 
@@ -30,6 +35,26 @@ class NumberValue implements Value {
   show(): string {
     return `${this.n}`;
   }
+
+  equals(other: Value): boolean {
+    if (!(other instanceof NumberValue)) {
+      return false;
+    }
+
+    return other.n === this.n;
+  }
+  lessThan(other: NumberValue): boolean {
+    return this.n < other.n;
+  }
+  lessThanEquals(other: NumberValue): boolean {
+    return this.n <= other.n;
+  }
+  greaterThan(other: NumberValue): boolean {
+    return this.n > other.n;
+  }
+  greaterThanEquals(other: NumberValue): boolean {
+    return this.n >= other.n;
+  }
 }
 
 class BooleanValue implements Value {
@@ -38,6 +63,14 @@ class BooleanValue implements Value {
   show(): string {
     return `${this.b}`;
   }
+
+  equals(other: Value): boolean {
+    if (!(other instanceof BooleanValue)) {
+      return false;
+    }
+
+    return other.b === this.b;
+  }
 }
 
 export class StringValue implements Value {
@@ -45,6 +78,14 @@ export class StringValue implements Value {
 
   show(): string {
     return `${this.s}`;
+  }
+
+  equals(other: Value): boolean {
+    if (!(other instanceof StringValue)) {
+      return false;
+    }
+
+    return other.s === this.s;
   }
 }
 
@@ -103,6 +144,10 @@ export class Evaluator {
       return this.evalInfixExpression(exp.lhs, exp.op, exp.rhs, mode);
     }
 
+    if (exp instanceof PrefixExpression) {
+      return this.evalPrefixExpression(exp.op, exp.exp, mode);
+    }
+
     if (exp instanceof Identifier) {
       return this.evalArithmeticIdentifier(exp);
     }
@@ -138,30 +183,80 @@ export class Evaluator {
 
   private evalInfixExpression(
     lhs: Expression,
-    op: Operator,
+    op: string,
     rhs: Expression,
     mode: "regular" | "arithmetic",
   ): Value {
     const left = this.evalExpression(lhs, mode);
     const right = this.evalExpression(rhs, mode);
 
-    if (op == Operator.Plus) {
+    if (op === "+") {
       if (left instanceof NumberValue && right instanceof NumberValue) {
         return new NumberValue(left.n + right.n);
       }
     }
-    if (op == Operator.Asterisk) {
+    if (op === "*") {
       if (left instanceof NumberValue && right instanceof NumberValue) {
         return new NumberValue(left.n * right.n);
       }
     }
-    if (op == Operator.Equal) {
-      if (left instanceof NumberValue && right instanceof NumberValue) {
-        return new BooleanValue(left.n === right.n);
+    if (op === "=") {
+      if (!(right instanceof StringValue && left instanceof StringValue)) {
+        throw new Error(
+          `= only works on strings, but given ${right.constructor.name} ${left.constructor.name}`,
+        );
+      }
+      return new BooleanValue(left.equals(right));
+    }
+    if (op === "!=") {
+      if (left instanceof StringValue && right instanceof StringValue) {
+        return new BooleanValue(left.s !== right.s);
+      }
+    }
+
+    if (op.startsWith("-")) {
+      const leftNumber = this.coerceNumber(left);
+      const rightNumber = this.coerceNumber(right);
+
+      if (op === "-eq") {
+        return new BooleanValue(leftNumber.equals(rightNumber));
+      }
+      if (op === "-ne") {
+        return new BooleanValue(!leftNumber.equals(rightNumber));
+      }
+      if (op === "-lt") {
+        return new BooleanValue(leftNumber.lessThan(rightNumber));
+      }
+      if (op === "-le") {
+        return new BooleanValue(leftNumber.lessThanEquals(rightNumber));
+      }
+      if (op === "-gt") {
+        return new BooleanValue(leftNumber.greaterThan(rightNumber));
+      }
+      if (op === "-ge") {
+        return new BooleanValue(leftNumber.greaterThanEquals(rightNumber));
       }
     }
 
     throw new Error(`Unhandled operator ${op}`);
+  }
+
+  private evalPrefixExpression(
+    op: string,
+    exp: Expression,
+    mode: "regular" | "arithmetic",
+  ): Value {
+    const value = this.evalExpression(exp, mode);
+
+    if (op === "-z") {
+      return new BooleanValue(value instanceof StringValue && !value.s);
+    }
+
+    if (op === "-n") {
+      return new BooleanValue(value instanceof StringValue && !!value.s);
+    }
+
+    throw new Error(`Unhandled prefix operator ${op}`);
   }
 
   private evalCondition(statement: Condition) {
@@ -234,5 +329,18 @@ export class Evaluator {
     if (curly) i++; // skip }
 
     return [this.variables.get(varName) || new StringValue(""), i];
+  }
+
+  private coerceNumber(v: Value): NumberValue {
+    if (v instanceof NumberValue) {
+      return v;
+    }
+
+    const number = Number(v.show());
+    if (number) {
+      return new NumberValue(number);
+    }
+
+    throw new Error(`'${v}' is really not a number`);
   }
 }

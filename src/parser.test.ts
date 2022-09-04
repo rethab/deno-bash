@@ -9,8 +9,8 @@ import {
   Identifier,
   InfixExpression,
   NumberConstant,
-  Operator,
   Parser,
+  PrefixExpression,
   Program,
   StringConstant,
 } from "./parser.ts";
@@ -74,10 +74,10 @@ Deno.test("operator precedence addition", () => {
             new InfixExpression(
               new NumberConstant(5),
               new NumberConstant(4),
-              Operator.Plus,
+              "+",
             ),
             new NumberConstant(3),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -96,16 +96,16 @@ Deno.test("operator precedence addition", () => {
                 new InfixExpression(
                   new NumberConstant(5),
                   new NumberConstant(4),
-                  Operator.Plus,
+                  "+",
                 ),
                 new NumberConstant(3),
-                Operator.Plus,
+                "+",
               ),
               new NumberConstant(2),
-              Operator.Plus,
+              "+",
             ),
             new NumberConstant(1),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -123,9 +123,9 @@ Deno.test("operator precedence addition with braces", () => {
             new InfixExpression(
               new NumberConstant(4),
               new NumberConstant(3),
-              Operator.Plus,
+              "+",
             ),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -142,10 +142,10 @@ Deno.test("operator precedence multiplication left-to-right", () => {
             new InfixExpression(
               new NumberConstant(5),
               new NumberConstant(4),
-              Operator.Asterisk,
+              "*",
             ),
             new NumberConstant(3),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -164,12 +164,12 @@ Deno.test("operator precedence multiplication between additions", () => {
               new InfixExpression(
                 new NumberConstant(4),
                 new NumberConstant(3),
-                Operator.Asterisk,
+                "*",
               ),
-              Operator.Plus,
+              "+",
             ),
             new NumberConstant(2),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -185,7 +185,7 @@ Deno.test("arithmetic expression addition", () => {
           new InfixExpression(
             new NumberConstant(5),
             new NumberConstant(4),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -201,7 +201,7 @@ Deno.test("arithmetic expression addition with variable", () => {
           new InfixExpression(
             new Identifier("a"),
             new NumberConstant(4),
-            Operator.Plus,
+            "+",
           ),
         ),
       ),
@@ -216,7 +216,7 @@ Deno.test("condition (if else)", () => {
         new InfixExpression(
           new StringConstant("a"),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(new StringConstant("c")),
         new ExpressionStatement(new StringConstant("d")),
@@ -232,7 +232,7 @@ Deno.test("condition (if else, multiline)", () => {
         new InfixExpression(
           new StringConstant("a"),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(new StringConstant("c")),
         new ExpressionStatement(
@@ -305,7 +305,7 @@ Deno.test("condition (only if)", () => {
         new InfixExpression(
           new StringConstant("a"),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(new StringConstant("c")),
       ),
@@ -322,11 +322,11 @@ Deno.test("condition (nested expression)", () => {
             new InfixExpression(
               new Identifier("a"),
               new NumberConstant(1),
-              Operator.Plus,
+              "+",
             ),
           ),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(new StringConstant("c")),
       ),
@@ -343,7 +343,7 @@ Deno.test("condition (nested expression 2)", () => {
             new InfixExpression(
               new Identifier("a"),
               new NumberConstant(1),
-              Operator.Plus,
+              "+",
             ),
           ),
           new ArithmeticExpression(
@@ -352,12 +352,12 @@ Deno.test("condition (nested expression 2)", () => {
               new InfixExpression(
                 new NumberConstant(1),
                 new NumberConstant(2),
-                Operator.Asterisk,
+                "*",
               ),
-              Operator.Plus,
+              "+",
             ),
           ),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(new StringConstant("c")),
       ),
@@ -372,7 +372,7 @@ Deno.test("condition (semicolons)", () => {
         new InfixExpression(
           new StringConstant("a"),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(new StringConstant("c")),
         new ExpressionStatement(new StringConstant("d")),
@@ -388,7 +388,7 @@ Deno.test("condition with function application", () => {
         new InfixExpression(
           new StringConstant("a"),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(
           new FunctionApplication(new StringConstant("echo"), [
@@ -407,7 +407,7 @@ Deno.test("condition with arithmetic expression", () => {
         new InfixExpression(
           new StringConstant("a"),
           new StringConstant("b"),
-          Operator.Equal,
+          "=",
         ),
         new ExpressionStatement(
           new FunctionApplication(
@@ -417,11 +417,27 @@ Deno.test("condition with arithmetic expression", () => {
                 new InfixExpression(
                   new NumberConstant(5),
                   new NumberConstant(5),
-                  Operator.Plus,
+                  "+",
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("conditional expressions", () => {
+  assertProgram('if [ -z "$foo" ]; then foo; fi', {
+    statements: [
+      new Condition(
+        new PrefixExpression(
+          "-z",
+          new StringConstant("$foo"),
+        ),
+        new ExpressionStatement(
+          new StringConstant("foo"),
         ),
       ),
     ],

@@ -17,12 +17,12 @@ Deno.test("if condition", () =>
   runProgram(
     `
 a=4
-if [ 5 = $a ]; then
+if [ 5 -gt $a ]; then
   echo yes
 else
   echo no
 fi`,
-    "no\n",
+    "yes\n",
   ));
 
 Deno.test("comments", () =>
