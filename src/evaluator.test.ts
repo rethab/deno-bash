@@ -104,6 +104,15 @@ Deno.test("echo with spaces", () => {
   assertStdout("echo if       else", ["if else"]);
   assertStdout('echo "if   else"', ["if   else"]);
 });
+Deno.test("comment", () =>
+  assertStdout(
+    `
+    # test
+    echo yes # no
+    # still test
+    `,
+    ["yes"],
+  ));
 
 function assertStdout(program: string, expectedOutputs: string[]) {
   const parser = new Parser(new Lexer(program));

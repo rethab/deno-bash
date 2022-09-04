@@ -22,6 +22,17 @@ fi`,
     "no\n",
   ));
 
+Deno.test("comments", () =>
+  runProgram(
+    `
+# foo
+echo yes # bar
+# echo no
+echo "# test"
+`,
+    "yes\n# test\n",
+  ));
+
 async function runProgram(
   program: string,
   expectedOutput: string | RegExp,

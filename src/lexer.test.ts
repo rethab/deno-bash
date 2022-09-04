@@ -4,6 +4,26 @@ import {
 } from "https://deno.land/std@0.153.0/testing/asserts.ts";
 import { Lexer, Token } from "./lexer.ts";
 
+Deno.test("comments", () => {
+  assertTokens("# foo", []);
+  assertTokens("echo foo; # foo", [
+    { type: "STRING", value: "echo" },
+    { type: "STRING", value: "foo" },
+    { type: "KEYWORD", value: ";" },
+  ]);
+  assertTokens(
+    `# foo
+  echo foo # bar ;
+  # foo`,
+    [
+      { type: "NEWLINE", value: "\n" },
+      { type: "STRING", value: "echo" },
+      { type: "STRING", value: "foo" },
+      { type: "NEWLINE", value: "\n" },
+    ],
+  );
+});
+
 Deno.test("braces", () => {
   assertTokens("[", [{ type: "OP", value: "[" }]);
   assertTokens("]", [{ type: "OP", value: "]" }]);
@@ -245,14 +265,19 @@ function assertTokens(
 ) {
   const lexer = new Lexer(input);
   for (const token of tokens) {
-    assertToken(token, lexer.next()!);
+    assertToken(token, lexer.next());
   }
   const next = lexer.next();
 
   assert(!next, `more chars: '${JSON.stringify(next)}'`);
 }
 
-function assertToken(expected: Token, actual: Token) {
+function assertToken(expected: Token, actual?: Token) {
+  if (!actual) {
+    throw new AssertionError(
+      `Expected '${expected.value}' (${expected.type}), but stream is empty..`,
+    );
+  }
   if (expected.type !== actual.type) {
     throw new AssertionError(
       `Expected type ${expected.type} ('${expected.value}') but got ${actual.type} ('${actual.value}')`,

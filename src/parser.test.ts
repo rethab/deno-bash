@@ -275,6 +275,27 @@ if [ a = b ]; then c
 else echo d; fi`,
     expectedProgram,
   );
+  assertProgram(
+    `
+
+
+if [ a = b ]; then
+
+
+c
+
+
+else
+
+
+echo d;
+
+
+fi
+
+`,
+    expectedProgram,
+  );
 });
 
 Deno.test("condition (only if)", () => {

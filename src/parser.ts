@@ -109,10 +109,11 @@ export class Parser {
   parse(): Program {
     const statements = [];
 
+    this.skipNewlines();
     while (this.curToken != undefined) {
-      this.skipNewline();
       statements.push(this.parseStatement());
       this.skipSemicolon();
+      this.skipNewlines();
     }
 
     return { statements };
@@ -176,10 +177,10 @@ export class Parser {
     this.consumeToken({ type: "OP", value: "]" });
     this.consumeToken({ type: "KEYWORD", value: ";" });
     this.consumeToken({ type: "KEYWORD", value: "then" });
-    this.skipNewline();
+    this.skipNewlines();
     const consequence = this.parseStatement();
     this.skipSemicolon();
-    this.skipNewline();
+    this.skipNewlines();
 
     if (this.curToken?.value === "fi") {
       this.consumeToken({ type: "KEYWORD", value: "fi" });
@@ -188,10 +189,10 @@ export class Parser {
 
     if (this.curToken?.value === "else") {
       this.consumeToken({ type: "KEYWORD", value: "else" });
-      this.skipNewline();
+      this.skipNewlines();
       const other = this.parseStatement();
       this.skipSemicolon();
-      this.skipNewline();
+      this.skipNewlines();
       this.consumeToken({ type: "KEYWORD", value: "fi" });
       return new Condition(expression, consequence, other);
     }
@@ -345,8 +346,8 @@ export class Parser {
     return this.curToken?.type === "NEWLINE";
   }
 
-  private skipNewline() {
-    if (this.isNewline()) {
+  private skipNewlines() {
+    while (this.isNewline()) {
       this.advanceToken();
     }
   }

@@ -23,6 +23,7 @@ export class Lexer {
       main: {
         WS: / /,
         NEWLINE: { match: "\n", lineBreaks: true },
+        COMMENT: "#",
         ARITHMETIC_OPEN: { match: "$((", push: "arith" },
         OP: ["[", "]", "=", "(", ")", "+"],
         KEYWORD: [";", "if", "then", "else", "fi"],
@@ -55,6 +56,12 @@ export class Lexer {
 
     while (token?.type === "WS") {
       token = this.pop();
+    }
+
+    if (token?.type === "COMMENT") {
+      while (token && token.type !== "NEWLINE") {
+        token = this.pop();
+      }
     }
 
     while (token?.type === "STRING" && this.peek()?.type === "STRING") {
