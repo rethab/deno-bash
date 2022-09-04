@@ -36,6 +36,9 @@ echo "# test"
     "yes\n# test\n",
   ));
 
+Deno.test("command invocation", () =>
+  runProgram(`awk 'BEGIN{print "foo"}'`, "foo\n"));
+
 async function runProgram(
   program: string,
   expectedOutput: string | RegExp,
@@ -44,7 +47,15 @@ async function runProgram(
   const filename = Deno.makeTempFileSync({ suffix: ".sh" });
   Deno.writeTextFileSync(filename, program);
   const process = Deno.run({
-    cmd: ["deno", "run", "--allow-read", "mod.ts", filename, ...args],
+    cmd: [
+      "deno",
+      "run",
+      "--allow-read",
+      "--allow-run",
+      "mod.ts",
+      filename,
+      ...args,
+    ],
     stdout: "piped",
   });
   const binaryOut = await process.output();

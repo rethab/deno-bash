@@ -1,10 +1,5 @@
 foo=bar
 
-if [ -z $foo ]; then
-  echo empty
-fi
+awk 'BEGIN { print "hello, laurie" }'
 
-if [ -n "$foo" ]; then
-  echo nonempty
-fi
-
+git status

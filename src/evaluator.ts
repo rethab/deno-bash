@@ -89,10 +89,15 @@ export class StringValue implements Value {
   }
 }
 
+export interface CommandInvoker {
+  exec(name: string, args: string[]): Promise<number>;
+}
+
 export class Evaluator {
   constructor(
     private variables: Map<string, Value>,
     private builtins: Builtins,
+    private commandInvoker: CommandInvoker,
   ) {}
 
   run(p: Program) {
@@ -166,7 +171,8 @@ export class Evaluator {
       return new Void();
     }
 
-    throw new Error(`Unhandled function ${name}`);
+    this.commandInvoker.exec(name, parameters.map((p) => p.show()));
+    return new Void();
   }
 
   private evalArithmeticIdentifier(identifier: Identifier): Value {

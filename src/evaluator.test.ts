@@ -1,6 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.153.0/testing/asserts.ts";
 import { Builtins } from "./builtins.ts";
-import { Evaluator } from "./evaluator.ts";
+import { CommandInvoker, Evaluator } from "./evaluator.ts";
 import { Lexer } from "./lexer.ts";
 import { Parser } from "./parser.ts";
 
@@ -205,7 +205,12 @@ function assertStdout(program: string, expectedOutputs: string[]) {
       return 0;
     },
   };
-  const evaluator = new Evaluator(new Map(), builtins);
+  const commandInvoker: CommandInvoker = {
+    async exec(name: string, args: string[]): Promise<number> {
+      return 0;
+    },
+  };
+  const evaluator = new Evaluator(new Map(), builtins, commandInvoker);
   evaluator.run(parser.parse());
   assertEquals(
     outputs,

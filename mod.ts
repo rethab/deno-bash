@@ -1,5 +1,10 @@
-import {defaultBuiltins} from './src/builtins.ts';
-import { Evaluator, StringValue, Value } from "./src/evaluator.ts";
+import { defaultBuiltins } from "./src/builtins.ts";
+import {
+  CommandInvoker,
+  Evaluator,
+  StringValue,
+  Value,
+} from "./src/evaluator.ts";
 import { Lexer } from "./src/lexer.ts";
 import { Parser } from "./src/parser.ts";
 
@@ -16,6 +21,22 @@ for (let i = 1; i < Deno.args.length; i++) {
   predefinedVariables.set(`${i}`, new StringValue(Deno.args[i]));
 }
 
-const evaluator = new Evaluator(predefinedVariables, defaultBuiltins);
+const commandInvoker: CommandInvoker = {
+  async exec(name: string, args: string[]): Promise<number> {
+    const process = Deno.run({
+      cmd: [name, ...args],
+    });
+    const status = await process.status();
+    process.close();
+
+    return status.code;
+  },
+};
+
+const evaluator = new Evaluator(
+  predefinedVariables,
+  defaultBuiltins,
+  commandInvoker,
+);
 
 evaluator.run(program);
