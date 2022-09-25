@@ -103,6 +103,68 @@ Deno.test("parameter expansion: not in single quotes", () => {
   assertStdout(`echo 'hello $1 foo $bar'`, ["hello $1 foo $bar"]);
 });
 
+Deno.test("arrays: declaration & access", () => {
+  assertStdout("name=(foo); echo ${name[0]}", ["foo", "bar"]);
+  assertStdout("name=(); echo ${name[0]}", [""]);
+  assertStdout("name=(foo bar); echo ${name[0]} ${name[1]}", ["foo", "bar"]);
+  assertStdout("name=(foo bar baz); echo ${name[0]} ${name[1]} ${name[2]}", [
+    "foo",
+    "bar",
+    "baz",
+  ]);
+});
+
+Deno.test("arrays: declaration with quotes", () => {
+  assertStdout(`name=("foo"); echo $\{name[0]}`, ["foo"]);
+  assertStdout(`name=("foo bar"); echo $\{name[0]}`, ["foo bar"]);
+  assertStdout(`name=("foo" "bar"); echo $\{name[0]} $\{name[1]}`, [
+    "foo",
+    "bar",
+  ]);
+});
+
+Deno.test("arrays: assign directly", () => {
+  assertStdout("name[0]=foo; echo ${name[0]}", ["foo"]);
+  assertStdout("name[1]=foo; echo ${name[1]}", ["foo"]);
+  assertStdout("name[0]=foo; echo ${name[1]}", [""]);
+  assertStdout("name[1]=foo; echo ${name[0]}", [""]);
+});
+
+Deno.test("arrays: arithmetic subtext", () => {
+  assertStdout("name[0+0]=foo; echo ${name[499 - 200 - 299]}", ["foo"]);
+  assertStdout("name[2-1]=foo; echo ${name[99 * 0 + 1]}", ["foo"]);
+  assertStdout("name[2-2]=foo; echo ${name[0*0]}", [""]);
+  assertStdout("name[1*1]=foo; echo ${name[11+34*7/3]}", [""]);
+});
+
+Deno.test("arrays: string subtext", () => {
+  assertStdout(`name["ix1"]=v1; name["ix2"]; echo $\{name["ix1"]}`, ["v1"]);
+  assertStdout(`name["ix1"]=v1; name["ix2"]; echo $\{name["ix2"]}`, ["v2"]);
+  assertStdout(`name[ix1]=v1; name[ix2]; echo $\{name[ix1]}`, ["v1"]);
+});
+
+Deno.test("arrays: no index means 0", () => {
+  assertStdout("name=(v1 v2); echo ${name}", ["v1"]);
+  assertStdout("name=(); echo ${name}", [""]);
+  assertStdout("name=(v1 v2); echo ${#name}", ["2"]);
+});
+
+Deno.test("arrays: length", () => {
+  assertStdout("name=(v1); echo ${#name[@]}", ["1"]);
+  assertStdout("name=(v1 v2); echo ${#name[@]}", ["2"]);
+  assertStdout("name=(v1 v2 v3); echo ${#name[@]}", ["3"]);
+  assertStdout("name=(v1); echo ${#name[*]}", ["1"]);
+  assertStdout("name=(v1 v2); echo ${#name[*]}", ["2"]);
+  assertStdout("name=(v1 v2 v3); echo ${#name[*]}", ["3"]);
+  assertStdout("name=(v1); echo ${#name[0]}", ["2"]);
+  assertStdout("name=(v1 verylong v3); echo ${#name[1]}", ["8"]);
+});
+
+Deno.test("arrays: show all", () => {
+  assertStdout("name=(v1 v2 v3 v4); echo ${name[@]}", ["v1 v2 v3 v4"]);
+  assertStdout("name=(v1 v2 v3 v4); echo ${name[*]}", ["v1 v2 v3 v4"]);
+});
+
 Deno.test("conditional expressions: -z", () => {
   assertStdout('foo=bar; if [ -z $foo ]; then echo "empty"; fi', []);
   assertStdout('foo=bar; if [ -z "$foo" ]; then echo "empty"; fi', []);
