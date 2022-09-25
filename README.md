@@ -19,3 +19,4 @@ deno run --allow-read https://deno.land/x/denash/mod.ts my-script.sh
 - [ ] arrays
 - [ ] switch case statement
 - [ ] more builtins
+- [ ] file utilities / globbing
