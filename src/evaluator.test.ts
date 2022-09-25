@@ -114,6 +114,16 @@ Deno.test("arrays: declaration & access", () => {
   ]);
 });
 
+Deno.test("arrays: access in strings", () => {
+  assertStdout(`name=(foo bar); echo "$\{name[0]}"`, ["foo"]);
+  assertStdout(`name=(foo bar); echo "$\{name[9*0+1]}"`, ["foo"]);
+  assertStdout(`name=(foo bar); echo "$\{name[@]}"`, ["foo bar"]);
+  assertStdout(`name=(foo bar); echo "$\{name[*]}"`, ["foo bar"]);
+  assertStdout(`name=(foo bar); echo "$\{#name[*]}"`, ["foo bar"]);
+  assertStdout(`name=(foo bar); echo "$\{#name}"`, ["foo bar"]);
+  assertStdout(`name=(foo bar); echo "$\{#name[0]}"`, ["foo bar"]);
+});
+
 Deno.test("arrays: declaration with quotes", () => {
   assertStdout(`name=("foo"); echo $\{name[0]}`, ["foo"]);
   assertStdout(`name=("foo bar"); echo $\{name[0]}`, ["foo bar"]);

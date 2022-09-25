@@ -28,7 +28,7 @@ export class Lexer {
         COMMENT: "#",
         ARITHMETIC_OPEN: { match: "$((", push: "arithmetic" },
         CONDITIONAL_OPEN: { match: "[", push: "conditional" },
-        OP: ["=", "(", ")", "+"],
+        OP: ["=", "(", ")", "+", "${", "}"],
         KEYWORD: [";", "if", "then", "else", "fi"],
         NUMBER: /[0-9]+/,
         STRING: [

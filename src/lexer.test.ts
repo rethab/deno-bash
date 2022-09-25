@@ -196,6 +196,43 @@ Deno.test("use variables", () => {
   assertTokens("$ABC", [{ type: "STRING", value: "$ABC" }]);
 });
 
+Deno.test("array declaration", () => {
+  assertTokens("name=()", [
+    { type: "STRING", value: "name" },
+    { type: "OP", value: "=" },
+    { type: "OP", value: "(" },
+    { type: "OP", value: ")" },
+  ]);
+  assertTokens("name=(foo bar)", [
+    { type: "STRING", value: "name" },
+    { type: "OP", value: "=" },
+    { type: "OP", value: "(" },
+    { type: "STRING", value: "foo" },
+    { type: "STRING", value: "bar" },
+    { type: "OP", value: ")" },
+  ]);
+  assertTokens(`name=("foo bar" bar "bar foo")`, [
+    { type: "STRING", value: "name" },
+    { type: "OP", value: "=" },
+    { type: "OP", value: "(" },
+    { type: "STRING", value: "foo bar", text: `"foo bar"` },
+    { type: "STRING", value: "bar" },
+    { type: "STRING", value: "bar foo", text: `"bar foo"` },
+    { type: "OP", value: ")" },
+  ]);
+});
+
+Deno.test("array access", () => {
+  assertTokens("${name[0]}", [
+    { type: "OP", value: "${" },
+    { type: "STRING", value: "name" },
+    { type: "OP", value: "[" },
+    { type: "NUMBER", value: "0" },
+    { type: "OP", value: "]" },
+    { type: "OP", value: "}" },
+  ]);
+});
+
 Deno.test("simple condition", () => {
   assertTokens('["a" = $b]', [
     { type: "CONDITIONAL_OPEN", value: "[" },
