@@ -2,6 +2,8 @@ import { assertEquals } from "https://deno.land/std@0.153.0/testing/asserts.ts";
 import { Lexer } from "./lexer.ts";
 import {
   ArithmeticExpression,
+  Array,
+  ArrayAccess,
   Assignment,
   Condition,
   ExpressionStatement,
@@ -548,6 +550,22 @@ Deno.test("function application", () => {
     ],
   });
 
+  assertProgram("echo ${a[0]}", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [
+            new ArrayAccess(
+              new Identifier("a"),
+              new NumberConstant(0),
+            ),
+          ],
+        ),
+      ),
+    ],
+  });
+
   assertProgram('echo "hello"', {
     statements: [
       new ExpressionStatement(
@@ -564,6 +582,98 @@ Deno.test("function application", () => {
         new FunctionApplication(
           new StringConstant("echo"),
           [new StringConstant("if"), new StringConstant("else")],
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("arrays declaration", () => {
+  assertProgram("ary=(a b c)", {
+    statements: [
+      new Assignment(
+        new Identifier("ary"),
+        new Array([
+          new StringConstant("a"),
+          new StringConstant("b"),
+          new StringConstant("c"),
+        ]),
+      ),
+    ],
+  });
+  assertProgram(`ary=("a" b "c c c")`, {
+    statements: [
+      new Assignment(
+        new Identifier("ary"),
+        new Array([
+          new StringConstant("a"),
+          new StringConstant("b"),
+          new StringConstant("c c c"),
+        ]),
+      ),
+    ],
+  });
+});
+
+Deno.test("arrays access", () => {
+  assertProgram("${a[0]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new NumberConstant(0),
+        ),
+      ),
+    ],
+  });
+  assertProgram("${a[1 + 4]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new InfixExpression(
+            new NumberConstant(1),
+            new NumberConstant(4),
+            "+",
+          ),
+        ),
+      ),
+    ],
+  });
+  assertProgram("${a[(1 + 3) * 4]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new InfixExpression(
+            new InfixExpression(
+              new NumberConstant(1),
+              new NumberConstant(3),
+              "+",
+            ),
+            new NumberConstant(4),
+            "*",
+          ),
+        ),
+      ),
+    ],
+  });
+  assertProgram(`$\{a["hello"]}`, {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new StringConstant("hello"),
+        ),
+      ),
+    ],
+  });
+  assertProgram("${a[he]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new StringConstant("he"),
         ),
       ),
     ],

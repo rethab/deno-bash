@@ -9,14 +9,16 @@ Run like so:
 deno run --allow-read https://deno.land/x/denash/mod.ts my-script.sh
 ```
 
+## Features
 
-----
+Take a look at [mod.test.ts](mod.test.ts) if you want to know what it can do already :)
+
+---
 
 ### TODO
 
 - [ ] shorthand conditionals like `[ a = b ] && echo foo`
 - [ ] handle error codes from external commands and `set -e`
-- [ ] arrays
 - [ ] switch case statement
 - [ ] more builtins
 - [ ] file utilities / globbing

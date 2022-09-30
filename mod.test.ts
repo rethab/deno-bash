@@ -39,6 +39,15 @@ echo "# test"
 Deno.test("command invocation", () =>
   runProgram(`awk 'BEGIN{print "foo"}'`, "foo\n"));
 
+Deno.test("arrays", () =>
+  runProgram(
+    `
+names=(anna bob carrie)
+echo "there are $\{#names} and the second one is $\{names[1]}
+`,
+    "There are 3 names and the second one is bob",
+  ));
+
 async function runProgram(
   program: string,
   expectedOutput: string | RegExp,

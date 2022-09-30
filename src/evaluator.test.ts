@@ -104,13 +104,11 @@ Deno.test("parameter expansion: not in single quotes", () => {
 });
 
 Deno.test("arrays: declaration & access", () => {
-  assertStdout("name=(foo); echo ${name[0]}", ["foo", "bar"]);
+  assertStdout("name=(foo); echo ${name[0]}", ["foo"]);
   assertStdout("name=(); echo ${name[0]}", [""]);
-  assertStdout("name=(foo bar); echo ${name[0]} ${name[1]}", ["foo", "bar"]);
+  assertStdout("name=(foo bar); echo ${name[0]} ${name[1]}", ["foo bar"]);
   assertStdout("name=(foo bar baz); echo ${name[0]} ${name[1]} ${name[2]}", [
-    "foo",
-    "bar",
-    "baz",
+    "foo bar baz",
   ]);
 });
 
@@ -157,6 +155,10 @@ Deno.test("arrays: no index means 0", () => {
   assertStdout("name=(v1 v2); echo ${name}", ["v1"]);
   assertStdout("name=(); echo ${name}", [""]);
   assertStdout("name=(v1 v2); echo ${#name}", ["2"]);
+});
+
+Deno.test("arrays: access without curly does not work", () => {
+  assertStdout("ar[he]=1; echo $ar[he]", ["1[he]"]);
 });
 
 Deno.test("arrays: length", () => {

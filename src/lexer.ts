@@ -27,19 +27,7 @@ export class Lexer {
         NEWLINE: { match: "\n", lineBreaks: true },
         COMMENT: "#",
         ARITHMETIC_OPEN: { match: "$((", push: "arithmetic" },
-        OP: [
-          "=",
-          "(",
-          ")",
-          "+",
-          "!=",
-          "${",
-          "}",
-          "[",
-          "]", /*{
-          match: /-[a-z]{1,2}/,
-        }*/
-        ],
+        OP: ["=", "(", ")", "+", "*", "!=", "${", "}", "[", "]"],
         KEYWORD: [";", "if", "then", "else", "fi"],
         NUMBER: /[0-9]+/,
         STRING: [
