@@ -1,6 +1,8 @@
 import { Builtins } from "./builtins.ts";
 import {
   ArithmeticExpression,
+  Array,
+  ArrayAccess,
   Assignment,
   Condition,
   Expression,
@@ -89,6 +91,31 @@ export class StringValue implements Value {
   }
 }
 
+export class ArrayValue implements Value {
+  constructor(public readonly values: Value[]) {}
+
+  show(): string {
+    return `[${this.values.join(", ")}]`;
+  }
+
+  equals(other: Value): boolean {
+    if (
+      !(other instanceof ArrayValue) ||
+      other.values.length !== this.values.length
+    ) {
+      return false;
+    }
+
+    for (const index in this.values) {
+      if (!this.values[index].equals(other.values[index])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+}
+
 export interface CommandInvoker {
   exec(name: string, args: string[]): Promise<number>;
 }
@@ -150,11 +177,19 @@ export class Evaluator {
     }
 
     if (exp instanceof Identifier) {
-      return this.evalArithmeticIdentifier(exp);
+      return this.evalIdentifier(exp);
     }
 
     if (exp instanceof FunctionApplication) {
       return this.evalFunctionApplication(exp);
+    }
+
+    if (exp instanceof Array) {
+      return this.evalArray(exp);
+    }
+
+    if (exp instanceof ArrayAccess) {
+      return this.evalArrayAccess(exp);
     }
 
     throw new Error(`Unhandled expression ${exp.constructor.name}`);
@@ -175,7 +210,39 @@ export class Evaluator {
     return new Void();
   }
 
-  private evalArithmeticIdentifier(identifier: Identifier): Value {
+  private evalArray(exp: Array): ArrayValue {
+    const values = [];
+
+    for (const value of exp.values) {
+      values.push(this.evalExpression(value, "regular"));
+    }
+
+    return new ArrayValue(values);
+  }
+
+  private evalArrayAccess(exp: ArrayAccess): Value {
+    const { identifier, index: indexExp } = exp;
+
+    const array = this.evalExpression(identifier, "regular");
+
+    if (!(array instanceof ArrayValue)) {
+      throw new Error(
+        `Trying to access ${array} as array, but it is not an array`,
+      );
+    }
+
+    const index = this.evalExpression(indexExp, "arithmetic");
+
+    if (!(index instanceof NumberValue)) {
+      throw new Error(
+        `Arrays can only be accessed with a number index, but got ${index}`,
+      );
+    }
+
+    return array.values[index.n] || new StringValue("");
+  }
+
+  private evalIdentifier(identifier: Identifier): Value {
     const { value: name } = identifier;
 
     const lookupName = name.startsWith("$") ? name.slice(1) : name;

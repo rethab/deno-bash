@@ -68,6 +68,7 @@ enum Precedence {
   Product, // *
   Prefix, // -x or !x
   Call, // function(x)
+  Index,
   Highest,
 }
 
@@ -105,12 +106,27 @@ export class FunctionApplication implements Expression {
   }
 }
 
+export class Array implements Expression {
+  constructor(public readonly values: StringConstant[]) {}
+}
+
+export class ArrayAccess implements Expression {
+  constructor(
+    public readonly identifier: Identifier,
+    public readonly index: Expression,
+  ) {}
+}
+
 type PrefixParseFunction = (t: Token) => Expression;
 type InfixParseFunction = (e: Expression) => Expression;
+
+type Mode = "arithmetic" | "normal";
 
 export class Parser {
   private curToken?: Token;
   private nextToken?: Token;
+
+  private mode: Mode = "normal";
 
   constructor(private lexer: Lexer) {
     this.curToken = this.lexer.next();
@@ -133,17 +149,25 @@ export class Parser {
   private prefixParseFunction(token: Token): PrefixParseFunction {
     const { type, value } = token;
 
+    if (type === "STRING" && value.startsWith("-")) {
+      return () => this.parsePrefixExpression();
+    }
+
     if (type === "NUMBER") return (t: Token) => this.parseNumber(t);
     if (type === "STRING") return (t: Token) => this.parseString(t);
     if (type === "KEYWORD") return (t: Token) => this.parseString(t);
     if (type === "IDENTIFIER") return (t: Token) => this.parseIdentifier(t);
 
-    if (type === "OP" && value.startsWith("-")) {
-      return () => this.parsePrefixExpression();
+    if (value === "(") {
+      if (this.mode === "arithmetic") {
+        return () => this.parseGroupedExpression("(", ")");
+      } else if (this.mode === "normal") {
+        return () => this.parseArray();
+      }
     }
 
-    if (value === "(") {
-      return () => this.parseGroupedExpression();
+    if (value === "${") {
+      return () => this.parseGroupedExpression("${", "}");
     }
 
     if (value === "$((") {
@@ -161,11 +185,18 @@ export class Parser {
     const { type, value } = token;
     if (type === "OP") {
       if (
-        value === "+" || value === "*" || value === "=" || value === "!=" ||
-        value.startsWith("-")
+        ["+", "*", "=", "!="].indexOf(value) !== -1 || value.startsWith("-")
       ) {
         return this.parseInfixExpression.bind(this);
       }
+
+      if (value === "[") {
+        return this.parseArrayAccess.bind(this);
+      }
+    }
+
+    if (type === "STRING" && value.startsWith("-")) {
+      return this.parseInfixExpression.bind(this);
     }
 
     return this.parseFunctionApplication.bind(this);
@@ -185,12 +216,14 @@ export class Parser {
       return this.parseConditionStatement();
     }
 
-    return new ExpressionStatement(this.parseExpression(Precedence.Lowest));
+    return new ExpressionStatement(
+      this.parseExpression(Precedence.Lowest),
+    );
   }
 
   private parseConditionStatement(): Condition {
     this.consumeToken({ type: "KEYWORD", value: "if" });
-    this.consumeToken({ type: "CONDITIONAL_OPEN", value: "[" });
+    this.consumeToken({ type: "OP", value: "[" });
     const expression = this.parseExpression(Precedence.Lowest);
     this.consumeToken({ type: "OP", value: "]" });
     this.consumeToken({ type: "KEYWORD", value: ";" });
@@ -308,22 +341,50 @@ export class Parser {
     return new InfixExpression(lhs, rhs, op);
   }
 
-  private parseGroupedExpression(): Expression {
-    this.consumeToken({ value: "(" });
+  private parseGroupedExpression(opening: string, closing: string): Expression {
+    this.consumeToken({ value: opening });
     const expression = this.parseExpression(Precedence.Lowest);
-    this.consumeToken({ value: ")" });
+    this.consumeToken({ value: closing });
     return expression;
+  }
+
+  private parseArray(): Expression {
+    this.consumeToken({ value: "(" });
+    const values = [];
+    while (this.curToken && this.curToken.value != ")") {
+      values.push(this.parseString(this.curToken));
+    }
+    this.consumeToken({ value: ")" });
+    return new Array(values);
   }
 
   private parseArithmeticExpression() {
     this.consumeToken({ value: "$((" });
 
+    this.mode = "arithmetic";
     const expression = this.parseExpression(Precedence.Lowest);
+    this.mode = "normal";
 
     this.consumeToken({ value: ")" });
     this.consumeToken({ value: ")" });
 
     return new ArithmeticExpression(expression);
+  }
+
+  private parseArrayAccess(arrayName: Expression) {
+    if (!(arrayName instanceof StringConstant)) {
+      throw new Error(
+        `LHS of array index must be StringConstant, but got ${arrayName.constructor.name}`,
+      );
+    }
+
+    this.consumeToken({ value: "[" });
+    this.mode = "arithmetic";
+    const index = this.parseExpression(Precedence.Lowest);
+    this.mode = "normal";
+    this.consumeToken({ value: "]" });
+
+    return new ArrayAccess(new Identifier(arrayName.s), index);
   }
 
   private parseFunctionApplication(name: Expression) {
@@ -394,6 +455,14 @@ export class Parser {
 
       if (value.startsWith("-")) {
         return Precedence.Product; // arbitrary, cant be combined anyway
+      }
+
+      if (value === "[") {
+        return Precedence.Index;
+      }
+
+      if (value === "${") {
+        return Precedence.Call;
       }
 
       return Precedence.Lowest;

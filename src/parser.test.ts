@@ -2,6 +2,8 @@ import { assertEquals } from "https://deno.land/std@0.153.0/testing/asserts.ts";
 import { Lexer } from "./lexer.ts";
 import {
   ArithmeticExpression,
+  Array,
+  ArrayAccess,
   Assignment,
   Condition,
   ExpressionStatement,
@@ -19,6 +21,14 @@ Deno.test("variable assignment", () => {
   assertProgram("a = b", {
     statements: [
       new Assignment(new Identifier("a"), new StringConstant("b")),
+    ],
+  });
+});
+
+Deno.test("variable assignment with curly", () => {
+  assertProgram("a = ${b}", {
+    statements: [
+      new Assignment(new Identifier("a"), new StringConstant("${b}")),
     ],
   });
 });
@@ -442,6 +452,36 @@ Deno.test("conditional expressions", () => {
       ),
     ],
   });
+
+  assertProgram('if [ $foo != "bar" ]; then foo; fi', {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new StringConstant("$foo"),
+          new StringConstant("bar"),
+          "!=",
+        ),
+        new ExpressionStatement(
+          new StringConstant("foo"),
+        ),
+      ),
+    ],
+  });
+
+  assertProgram("if [ 0 -eq 1 ]; then foo; fi", {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new NumberConstant(0),
+          new NumberConstant(1),
+          "-eq",
+        ),
+        new ExpressionStatement(
+          new StringConstant("foo"),
+        ),
+      ),
+    ],
+  });
 });
 
 Deno.test("function application", () => {
@@ -518,6 +558,22 @@ Deno.test("function application", () => {
     ],
   });
 
+  assertProgram("echo ${a[0]}", {
+    statements: [
+      new ExpressionStatement(
+        new FunctionApplication(
+          new StringConstant("echo"),
+          [
+            new ArrayAccess(
+              new Identifier("${a}"),
+              new NumberConstant(0),
+            ),
+          ],
+        ),
+      ),
+    ],
+  });
+
   assertProgram('echo "hello"', {
     statements: [
       new ExpressionStatement(
@@ -534,6 +590,98 @@ Deno.test("function application", () => {
         new FunctionApplication(
           new StringConstant("echo"),
           [new StringConstant("if"), new StringConstant("else")],
+        ),
+      ),
+    ],
+  });
+});
+
+Deno.test("arrays declaration", () => {
+  assertProgram("ary=(a b c)", {
+    statements: [
+      new Assignment(
+        new Identifier("ary"),
+        new Array([
+          new StringConstant("a"),
+          new StringConstant("b"),
+          new StringConstant("c"),
+        ]),
+      ),
+    ],
+  });
+  assertProgram(`ary=("a" b "c c c")`, {
+    statements: [
+      new Assignment(
+        new Identifier("ary"),
+        new Array([
+          new StringConstant("a"),
+          new StringConstant("b"),
+          new StringConstant("c c c"),
+        ]),
+      ),
+    ],
+  });
+});
+
+Deno.test("arrays access", () => {
+  assertProgram("${a[0]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new NumberConstant(0),
+        ),
+      ),
+    ],
+  });
+  assertProgram("${a[1 + 4]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new InfixExpression(
+            new NumberConstant(1),
+            new NumberConstant(4),
+            "+",
+          ),
+        ),
+      ),
+    ],
+  });
+  assertProgram("${a[(1 + 3) * 4]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new InfixExpression(
+            new InfixExpression(
+              new NumberConstant(1),
+              new NumberConstant(3),
+              "+",
+            ),
+            new NumberConstant(4),
+            "*",
+          ),
+        ),
+      ),
+    ],
+  });
+  assertProgram(`$\{a["hello"]}`, {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new StringConstant("hello"),
+        ),
+      ),
+    ],
+  });
+  assertProgram("${a[he]}", {
+    statements: [
+      new ExpressionStatement(
+        new ArrayAccess(
+          new Identifier("a"),
+          new StringConstant("he"),
         ),
       ),
     ],
