@@ -133,14 +133,14 @@ export class Parser {
   private prefixParseFunction(token: Token): PrefixParseFunction {
     const { type, value } = token;
 
+    if (type === "STRING" && value.startsWith("-")) {
+      return () => this.parsePrefixExpression();
+    }
+
     if (type === "NUMBER") return (t: Token) => this.parseNumber(t);
     if (type === "STRING") return (t: Token) => this.parseString(t);
     if (type === "KEYWORD") return (t: Token) => this.parseString(t);
     if (type === "IDENTIFIER") return (t: Token) => this.parseIdentifier(t);
-
-    if (type === "OP" && value.startsWith("-")) {
-      return () => this.parsePrefixExpression();
-    }
 
     if (value === "(") {
       return () => this.parseGroupedExpression();
@@ -168,6 +168,10 @@ export class Parser {
       }
     }
 
+    if (type === "STRING" && value.startsWith("-")) {
+      return this.parseInfixExpression.bind(this);
+    }
+
     return this.parseFunctionApplication.bind(this);
   }
 
@@ -190,7 +194,7 @@ export class Parser {
 
   private parseConditionStatement(): Condition {
     this.consumeToken({ type: "KEYWORD", value: "if" });
-    this.consumeToken({ type: "CONDITIONAL_OPEN", value: "[" });
+    this.consumeToken({ type: "OP", value: "[" });
     const expression = this.parseExpression(Precedence.Lowest);
     this.consumeToken({ type: "OP", value: "]" });
     this.consumeToken({ type: "KEYWORD", value: ";" });

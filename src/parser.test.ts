@@ -442,6 +442,36 @@ Deno.test("conditional expressions", () => {
       ),
     ],
   });
+
+  assertProgram('if [ $foo != "bar" ]; then foo; fi', {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new StringConstant("$foo"),
+          new StringConstant("bar"),
+          "!=",
+        ),
+        new ExpressionStatement(
+          new StringConstant("foo"),
+        ),
+      ),
+    ],
+  });
+
+  assertProgram("if [ 0 -eq 1 ]; then foo; fi", {
+    statements: [
+      new Condition(
+        new InfixExpression(
+          new NumberConstant(0),
+          new NumberConstant(1),
+          "-eq",
+        ),
+        new ExpressionStatement(
+          new StringConstant("foo"),
+        ),
+      ),
+    ],
+  });
 });
 
 Deno.test("function application", () => {

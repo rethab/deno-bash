@@ -27,8 +27,19 @@ export class Lexer {
         NEWLINE: { match: "\n", lineBreaks: true },
         COMMENT: "#",
         ARITHMETIC_OPEN: { match: "$((", push: "arithmetic" },
-        CONDITIONAL_OPEN: { match: "[", push: "conditional" },
-        OP: ["=", "(", ")", "+", "${", "}"],
+        OP: [
+          "=",
+          "(",
+          ")",
+          "+",
+          "!=",
+          "${",
+          "}",
+          "[",
+          "]", /*{
+          match: /-[a-z]{1,2}/,
+        }*/
+        ],
         KEYWORD: [";", "if", "then", "else", "fi"],
         NUMBER: /[0-9]+/,
         STRING: [
@@ -48,25 +59,6 @@ export class Lexer {
         ARITHMETIC_OPEN: { match: "$((", push: "arithmetic" },
         NUMBER: /[0-9]+/,
         IDENTIFIER: /[A-Za-z0-9_:$/.*-]+/,
-        WS: / /,
-      },
-      conditional: {
-        OP: [
-          { match: "]", pop: 1 },
-          { match: /-[a-zA-Z]{1,2}/ },
-          ")",
-          "=",
-          "!=",
-          "+",
-          "*",
-        ],
-        ARITHMETIC_OPEN: { match: "$((", push: "arithmetic" },
-        NUMBER: /[0-9]+/,
-        STRING: [
-          { match: /"(?:[^"]*)"/, value: (s: string) => s.slice(1, -1) },
-          { match: /'(?:[^']*)'/, value: (s: string) => s.slice(1, -1) },
-          { match: /[A-Za-z0-9_:$/.*-]+/ },
-        ],
         WS: / /,
       },
     }).reset(input);

@@ -25,8 +25,8 @@ Deno.test("comments", () => {
 });
 
 Deno.test("braces", () => {
-  assertTokens("[", [{ type: "CONDITIONAL_OPEN", value: "[" }]);
-  assertTokens("[]", [{ type: "CONDITIONAL_OPEN", value: "[" }, {
+  assertTokens("[", [{ type: "OP", value: "[" }]);
+  assertTokens("[]", [{ type: "OP", value: "[" }, {
     type: "OP",
     value: "]",
   }]);
@@ -183,7 +183,7 @@ Deno.test("single quotes", () => {
     text: `'"fo"of"'`,
   }]);
   assertTokens(`[ 'f"o' != 'of' ]`, [
-    { type: "CONDITIONAL_OPEN", value: "[" },
+    { type: "OP", value: "[" },
     { type: "STRING", value: 'f"o', text: `'f"o'` },
     { type: "OP", value: "!=" },
     { type: "STRING", value: "of", text: `'of'` },
@@ -235,7 +235,7 @@ Deno.test("array access", () => {
 
 Deno.test("simple condition", () => {
   assertTokens('["a" = $b]', [
-    { type: "CONDITIONAL_OPEN", value: "[" },
+    { type: "OP", value: "[" },
     { type: "STRING", value: "a" },
     { type: "OP", value: "=" },
     { type: "STRING", value: "$b" },
@@ -246,7 +246,7 @@ Deno.test("simple condition", () => {
 Deno.test("if condition", () => {
   assertTokens('if ["a" = $b]; then $a else $b fi', [
     { type: "KEYWORD", value: "if" },
-    { type: "CONDITIONAL_OPEN", value: "[" },
+    { type: "OP", value: "[" },
     { type: "STRING", value: "a" },
     { type: "OP", value: "=" },
     { type: "STRING", value: "$b" },
@@ -306,7 +306,7 @@ Deno.test("if condition multiple lines", () => {
   fi`,
     [
       { type: "KEYWORD", value: "if" },
-      { type: "CONDITIONAL_OPEN", value: "[" },
+      { type: "OP", value: "[" },
       { type: "STRING", value: "a" },
       { type: "OP", value: "=" },
       { type: "STRING", value: "b" },
@@ -332,8 +332,8 @@ Deno.test("conditional expression", () => {
   assertTokens(
     '[ -n "$foo" ]; then',
     [
-      { type: "CONDITIONAL_OPEN", value: "[" },
-      { type: "OP", value: "-n" },
+      { type: "OP", value: "[" },
+      { type: "STRING", value: "-n" },
       { type: "STRING", value: "$foo" },
       { type: "OP", value: "]" },
       { type: "KEYWORD", value: ";" },
@@ -343,8 +343,8 @@ Deno.test("conditional expression", () => {
   assertTokens(
     "[ -z $foo ]",
     [
-      { type: "CONDITIONAL_OPEN", value: "[" },
-      { type: "OP", value: "-z" },
+      { type: "OP", value: "[" },
+      { type: "STRING", value: "-z" },
       { type: "STRING", value: "$foo" },
       { type: "OP", value: "]" },
     ],
@@ -352,7 +352,7 @@ Deno.test("conditional expression", () => {
   assertTokens(
     '[ "foo" != "bar" ]',
     [
-      { type: "CONDITIONAL_OPEN", value: "[" },
+      { type: "OP", value: "[" },
       { type: "STRING", value: "foo" },
       { type: "OP", value: "!=" },
       { type: "STRING", value: "bar" },
@@ -362,7 +362,7 @@ Deno.test("conditional expression", () => {
   assertTokens(
     "[ $((1)) ]",
     [
-      { type: "CONDITIONAL_OPEN", value: "[" },
+      { type: "OP", value: "[" },
       { type: "ARITHMETIC_OPEN", value: "$((" },
       { type: "NUMBER", value: "1" },
       { type: "OP", value: ")" },
