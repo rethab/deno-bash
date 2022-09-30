@@ -28,12 +28,15 @@ Deno.test("condition arithmetic expression", () =>
   assertStdout("if [ 5 -eq 5 ]; then echo $((5+5)); fi", ["10"]));
 Deno.test("condition with variable", () =>
   assertStdout("a=5; if [ 5 -eq $a ]; then echo yes; fi", ["yes"]));
+Deno.test("condition with variable in curly", () =>
+  assertStdout("a=5; if [ 5 -eq $a ]; then echo yes; fi", ["yes"]));
 
 Deno.test("variable assignment", () => assertStdout("a=5; echo $a", ["5"]));
 Deno.test("multiple variable assignment", () => {
   assertStdout("a=5; b=6; echo $b", ["6"]);
   assertStdout("a=5; b=$a; echo $b", ["5"]);
   assertStdout("a=5; b=$a; c=$b; echo $c", ["5"]);
+  assertStdout("a=5; b=${a}; c=${b}; echo ${c}", ["5"]);
 });
 Deno.test("variable use in arithmetic expression", () => {
   assertStdout("a=5; echo $((a+4))", ["9"]);
@@ -125,10 +128,7 @@ Deno.test("arrays: access in strings", () => {
 Deno.test("arrays: declaration with quotes", () => {
   assertStdout(`name=("foo"); echo $\{name[0]}`, ["foo"]);
   assertStdout(`name=("foo bar"); echo $\{name[0]}`, ["foo bar"]);
-  assertStdout(`name=("foo" "bar"); echo $\{name[0]} $\{name[1]}`, [
-    "foo",
-    "bar",
-  ]);
+  assertStdout(`name=("foo" "bar"); echo $\{name[0]} $\{name[1]}`, ["foo bar"]);
 });
 
 Deno.test("arrays: assign directly", () => {
@@ -136,6 +136,10 @@ Deno.test("arrays: assign directly", () => {
   assertStdout("name[1]=foo; echo ${name[1]}", ["foo"]);
   assertStdout("name[0]=foo; echo ${name[1]}", [""]);
   assertStdout("name[1]=foo; echo ${name[0]}", [""]);
+});
+
+Deno.test("arrays: overwrite", () => {
+  assertStdout("x=(a b c); x[0]=d; echo ${x[0]}", ["d"]);
 });
 
 Deno.test("arrays: arithmetic subtext", () => {
@@ -254,6 +258,8 @@ Deno.test("conditional expression: stringy numbers", () => {
 Deno.test("undefined variable", () => assertStdout("echo $a", [""]));
 Deno.test("string expansion undefined variable", () =>
   assertStdout('echo "$a"', [""]));
+Deno.test("string expansion undefined variable", () =>
+  assertStdout('echo "${a}"', [""]));
 Deno.test("useless expression", () => assertStdout("$((0+0))", []));
 Deno.test("echo keyword", () => assertStdout("echo if", ["if"]));
 Deno.test("echo with spaces", () => {

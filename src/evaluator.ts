@@ -177,7 +177,7 @@ export class Evaluator {
     }
 
     if (exp instanceof Identifier) {
-      return this.evalArithmeticIdentifier(exp);
+      return this.evalIdentifier(exp);
     }
 
     if (exp instanceof FunctionApplication) {
@@ -242,7 +242,7 @@ export class Evaluator {
     return array.values[index.n] || new StringValue("");
   }
 
-  private evalArithmeticIdentifier(identifier: Identifier): Value {
+  private evalIdentifier(identifier: Identifier): Value {
     const { value: name } = identifier;
 
     const lookupName = name.startsWith("$") ? name.slice(1) : name;

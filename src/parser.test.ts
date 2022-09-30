@@ -25,6 +25,14 @@ Deno.test("variable assignment", () => {
   });
 });
 
+Deno.test("variable assignment with curly", () => {
+  assertProgram("a = ${b}", {
+    statements: [
+      new Assignment(new Identifier("a"), new StringConstant("${b}")),
+    ],
+  });
+});
+
 Deno.test("number assignment", () => {
   assertProgram("a = 5", {
     statements: [
@@ -557,7 +565,7 @@ Deno.test("function application", () => {
           new StringConstant("echo"),
           [
             new ArrayAccess(
-              new Identifier("a"),
+              new Identifier("${a}"),
               new NumberConstant(0),
             ),
           ],
